@@ -1,0 +1,31 @@
+.chart { position: relative; padding-left: 64px; }
+.chart-plot { position: relative; }
+.chart svg { width: 100%; height: 240px; display: block; overflow: visible; cursor: crosshair; touch-action: pan-y; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .series { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .cross { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-dot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface); pointer-events: none; }
+.chart-tip { position: absolute; top: 0; transform: translate(-50%, 0); background: var(--text); color: var(--bg); padding: 6px 10px; border-radius: 10px; font-size: 12px; pointer-events: none; display: flex; flex-direction: column; align-items: center; white-space: nowrap; box-shadow: var(--shadow); z-index: 2; }
+.chart-tip span { opacity: 0.75; font-size: 11px; }
+.chart-tip b { font-variant-numeric: tabular-nums; }
+.chart-y { position: absolute; left: 0; top: 0; width: 58px; height: 240px; }
+.chart-y span { position: absolute; right: 0; transform: translateY(-50%); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.chart-x { position: relative; height: 18px; margin-top: -20px; }
+.chart-x span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--faint); white-space: nowrap; }
+.chart-x span:first-child { transform: none; }
+.chart-x span:last-child { transform: translateX(-100%); }
+@media (max-width: 560px) {
+  .chart { padding-left: 48px; }
+  .chart-y { width: 44px; }
+  .chart svg, .chart-y { height: 180px; }
+}
+
+.barlist { display: flex; flex-direction: column; gap: 12px; }
+.bl-row { transition: opacity 0.15s; cursor: default; }
+.bl-row.dim { opacity: 0.45; }
+.bl-head { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; margin-bottom: 5px; }
+.bl-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bl-val { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text); }
+.bl-val small { font-weight: 500; color: var(--muted); }
+.bl-track { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.bl-track i { display: block; height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s var(--ease); }
