@@ -4,5 +4,5 @@ dist/
 bin/
 obj/
 .DS_Store
-e2e/fail-*.png
+**/e2e/fail-*.png
 graphify-out/
