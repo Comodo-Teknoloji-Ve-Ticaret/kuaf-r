@@ -1,0 +1,24 @@
+.svc-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 640px) { .svc-cats { grid-template-columns: 1fr; } }
+.svc-cat header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.svc-cat header h3 { font-size: 15px; }
+.svc-cat-mark { width: 10px; height: 26px; border-radius: 6px; background: var(--cc); }
+.svc-rows { display: flex; flex-direction: column; }
+.svc-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 16px; border-bottom: 1px solid var(--line); }
+.svc-row:last-child { border-bottom: none; }
+.svc-row:hover { background: var(--surface-2); }
+.svc-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.svc-name b { font-size: 13.5px; }
+.avatars { display: flex; }
+.avatars .avatar { border: 2px solid var(--surface); margin-right: -6px; }
+.inline-num { display: flex; align-items: center; gap: 3px; border: 1px solid transparent; border-radius: 9px; padding: 0 8px; height: 32px; transition: border-color 0.15s, background 0.15s; color: var(--muted); font-size: 12px; }
+.inline-num:hover, .inline-num:focus-within { border-color: var(--line-strong); background: var(--surface); }
+.inline-num input { width: 38px; border: none; background: transparent; outline: none; font-weight: 700; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+.inline-num.price input { width: 62px; text-align: left; }
+.svc-online { display: flex; align-items: center; gap: 6px; }
+@media (max-width: 640px) { .svc-online { display: none; } .inline-num { padding: 0 4px; } }
+.override-table { border: 1px solid var(--line); border-radius: 12px; }
+.override-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.override-row:last-child { border-bottom: none; }
+.override-row.off { opacity: 0.55; }
+.override-row input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent); }

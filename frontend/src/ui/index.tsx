@@ -104,7 +104,7 @@ export function colorFor(seed: string) {
 
 export function Avatar({ name, color, size = 32 }: { name: string; color?: string; size?: number }) {
   return (
-    <span className="avatar" style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: color ?? colorFor(name) }} aria-hidden>
+    <span className="avatar" style={{ width: size, height: size, fontSize: Math.round(size * 0.36), background: color ?? colorFor(name), color: '#fff', lineHeight: 1 }} aria-hidden>
       {initials(name)}
     </span>
   )
