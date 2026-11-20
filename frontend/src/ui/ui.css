@@ -59,7 +59,7 @@
 .seg button { border: none; background: transparent; height: 30px; padding: 0 13px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
 .seg button svg { width: 14px; height: 14px; }
 .seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tabs { display: flex; flex: none; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
 .tabs button { border: none; background: none; padding: 10px 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
 .tabs button.on { color: var(--text); border-color: var(--accent); }
 .tabs .count { font-size: 11px; background: var(--surface-3); border-radius: 999px; padding: 0 7px; }

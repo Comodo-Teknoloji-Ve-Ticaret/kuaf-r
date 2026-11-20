@@ -1,3 +1,4 @@
+import './calendar.css'
 import { AlertTriangle, Phone, Search, UserPlus, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { appointmentService, durationFor, priceFor } from '../../application/appointmentService'

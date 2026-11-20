@@ -1,3 +1,4 @@
+import './calendar.css'
 import {
   Ban, CalendarClock, Check, CheckCircle2, Footprints, MessageCircle, Pencil, Phone, Receipt, Repeat, Sparkles, UserX,
 } from 'lucide-react'
