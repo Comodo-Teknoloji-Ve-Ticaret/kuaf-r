@@ -131,3 +131,24 @@ describe('schema migration v2 → v3', () => {
     expect(db.colorCards).toEqual([])
   })
 })
+
+describe('self-healing of incomplete current-version data', () => {
+  it('fills missing v3 fields so prices never come out as NaN', () => {
+    const storage = memoryStorage()
+    const broken = {
+      ...emptyDb(), version: 3, colorCards: undefined,
+      tenants: [{ id: 't1', name: 'X', slug: 'x', logoColor: '#000', plan: 'pro', status: 'active', createdAt: '2026-11-01', businessType: 'kuafor', license: { start: '2026-11-01', days: 30 }, onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 60 } }],
+      staff: [{ id: 's1', tenantId: 't1', branchId: 'b1', name: 'A', title: '', color: '#000', phone: '', hours: {}, serviceIds: [], serviceCommission: 40, productCommission: 10, active: true }],
+      products: [{ id: 'p1', tenantId: 't1', name: 'Şampuan', brand: 'Loreal', category: 'Şampuan', kind: 'retail', price: 120000, cost: 60000, stock: 1, critical: 1 }],
+    }
+    storage.setItem('k', JSON.stringify(broken))
+    const db = createLocalStore('k', storage, emptyDb, '2026-11-21').read()
+    expect(db.products[0]).toMatchObject({ vatRate: 20, price: 100000, cost: 50000 })
+    expect(db.tenants[0].accounts.length).toBe(2)
+    expect(db.tenants[0].brands).toEqual(['Loreal'])
+    expect(db.staff[0]).toMatchObject({ commissionMode: 'category', categoryRates: {}, brandRates: {} })
+    expect(db.colorCards).toEqual([])
+    // onarılmış veri kalıcı yazılır
+    expect(JSON.parse(storage.getItem('k')!).products[0].vatRate).toBe(20)
+  })
+})
