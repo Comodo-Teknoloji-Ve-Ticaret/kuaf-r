@@ -5,7 +5,7 @@ import { createRepos, type Repos } from './repos'
 export function setup(): Repos {
   const store = createLocalStore('t', memoryStorage(), emptyDb)
   const r = createRepos(store, 't1')
-  r.tenants.upsert({ id: 't1', name: 'Test', slug: 'test', logoColor: '#000', plan: 'pro', status: 'active', createdAt: '2026-01-01', onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 60 } })
+  r.tenants.upsert({ id: 't1', name: 'Test', slug: 'test', logoColor: '#000', plan: 'pro', status: 'active', createdAt: '2026-01-01', businessType: 'kuafor', license: { start: '2026-11-01', days: 365 }, onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 60 } })
   r.branches.upsert({ id: 'b1', name: 'Merkez', address: '', phone: '', hours: hours9to12 })
   r.categories.upsert({ id: 'c1', name: 'Kesim', color: 'kesim', order: 0 })
   r.services.upsert({ id: 'sv1', categoryId: 'c1', name: 'Kesim', duration: 30, price: 40000, online: true, overrides: { s2: { price: 50000 } } })

@@ -1,3 +1,4 @@
+import { DB_VERSION } from '../application/db'
 import { describe, expect, it } from 'vitest'
 import { createRepos } from '../application/repos'
 import { createLocalStore, emptyDb, memoryStorage } from './localStore'
@@ -40,7 +41,7 @@ describe('localStore persistence', () => {
     storage.setItem('k', '{oops')
     const store = createLocalStore('k', storage, () => ({ ...emptyDb(), tenants: [] }))
     expect(store.recovered).toBe(true)
-    expect(store.read().version).toBe(1)
+    expect(store.read().version).toBe(DB_VERSION)
   })
   it('falls back to seed on schema version mismatch', () => {
     const storage = memoryStorage()
@@ -71,7 +72,8 @@ describe('buildSeed', () => {
   })
   it('creates two salons, one with two branches, and a platform user', () => {
     const db = buildSeed('2026-11-20')
-    expect(db.tenants).toHaveLength(2)
+    expect(db.tenants).toHaveLength(4)
+    expect(db.tenants.map((t) => t.businessType)).toEqual(['kuafor', 'berber', 'guzellik', 'dis'])
     expect(db.branches.filter((b) => b.tenantId === db.tenants[0].id)).toHaveLength(2)
     expect(db.users.some((u) => u.role === 'platform' && u.tenantId === null)).toBe(true)
     expect(db.appointments.some((a) => a.date === '2026-11-20')).toBe(true)
@@ -86,5 +88,24 @@ describe('buildSeed', () => {
   })
   it('fits comfortably in localStorage', () => {
     expect(JSON.stringify(buildSeed('2026-11-20')).length).toBeLessThan(3_000_000)
+  })
+})
+
+describe('schema migration', () => {
+  it('upgrades v1 data instead of wiping it', () => {
+    const storage = memoryStorage()
+    const v1 = { ...emptyDb(), version: 1, tenants: [{ id: 't1', name: 'Eski', slug: 'eski', logoColor: '#000', plan: 'pro', status: 'active', createdAt: '2026-11-01', onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 60 } }] }
+    storage.setItem('k', JSON.stringify(v1))
+    const store = createLocalStore('k', storage, emptyDb, '2026-11-20')
+    expect(store.recovered).toBe(false)
+    expect(store.read().version).toBe(2)
+    // Lisans taşıma gününden başlar; eski işletme anında kilitlenmez
+    expect(store.read().tenants[0]).toMatchObject({ name: 'Eski', businessType: 'kuafor', license: { start: '2026-11-20', days: 30 } })
+  })
+  it('replaces untouched v1 demo data with a fresh seed instead of migrating it', () => {
+    const storage = memoryStorage()
+    storage.setItem('k', JSON.stringify({ ...emptyDb(), version: 1, seededFor: '2026-11-19' }))
+    const store = createLocalStore('k', storage, () => ({ ...emptyDb(), seededFor: 'fresh' }), '2026-11-20')
+    expect(store.read().seededFor).toBe('fresh')
   })
 })

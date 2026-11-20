@@ -20,13 +20,28 @@ export function memoryStorage(): Storage {
   }
 }
 
+/** Eski şema sürümlerini günceller; bilinmeyen sürümde null döner. */
+function migrate(raw: Record<string, unknown>, today: string): Record<string, unknown> | null {
+  let db = raw
+  if (db.version === 1 && db.seededFor) return { reseed: true }
+  if (db.version === 1) {
+    const tenants = (db.tenants as Record<string, unknown>[] | undefined) ?? []
+    db = {
+      ...db,
+      version: 2,
+      tenants: tenants.map((t) => ({ businessType: 'kuafor', license: { start: today, days: 30 }, ...t })),
+    }
+  }
+  return db.version === DB_VERSION ? db : null
+}
+
 function isValid(db: unknown): db is DB {
   if (!db || typeof db !== 'object') return false
   const d = db as Record<string, unknown>
   return d.version === DB_VERSION && Object.keys(emptyDb()).every((k) => k === 'version' || Array.isArray(d[k]))
 }
 
-export function createLocalStore(key = 'makas:v1', storage: Storage = localStorage, seedFn: () => DB): Store {
+export function createLocalStore(key = 'makas:v1', storage: Storage = localStorage, seedFn: () => DB, today = new Date().toISOString().slice(0, 10)): Store {
   const listeners = new Set<() => void>()
   let recovered = false
   let persistError = false
@@ -49,11 +64,14 @@ export function createLocalStore(key = 'makas:v1', storage: Storage = localStora
     persist()
   } else {
     try {
-      const parsed = JSON.parse(raw)
+      const parsed = migrate(JSON.parse(raw), today)
+      if (parsed && 'reseed' in parsed) throw new Error('reseed')
       if (!isValid(parsed)) throw new Error('schema')
+      const upgraded = parsed.version !== JSON.parse(raw).version
       db = parsed
-    } catch {
-      recovered = true
+      if (upgraded) persist()
+    } catch (e) {
+      recovered = (e as Error).message !== 'reseed'
       db = seedFn()
       persist()
     }

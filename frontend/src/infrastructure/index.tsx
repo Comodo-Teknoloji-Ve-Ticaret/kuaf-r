@@ -12,7 +12,7 @@ let singleton: Store | null = null
 export function getStore(): Store {
   if (singleton) return singleton
   const today = todayIstanbul()
-  const store = createLocalStore('makas:v1', localStorage, () => buildSeed(today, nowMinutesIstanbul()))
+  const store = createLocalStore('makas:v1', localStorage, () => buildSeed(today, nowMinutesIstanbul()), today)
   const db = store.read()
   if (db.seededFor && db.seededFor < today) {
     const weeks = Math.floor(diffDays(today, db.seededFor) / 7)

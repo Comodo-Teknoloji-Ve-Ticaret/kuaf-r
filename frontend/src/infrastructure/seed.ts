@@ -55,6 +55,8 @@ interface SalonSpec {
   staff: { id: string; branch: string; name: string; title: string; color: string; cats: string[]; off: number; svc: number; prd: number }[]
   products: Omit<Product, 'id' | 'tenantId'>[]
   packages: { name: string; items: [string, number][]; price: number; validDays: number }[]
+  businessType: Tenant['businessType']
+  license: { startOffset: number; days: number }
   customers: number
   femaleRatio: number
   dailyFill: number // 0-1 doluluk
@@ -128,6 +130,8 @@ const SALONS: SalonSpec[] = [
       { name: 'Keratin + 3 Maske', items: [['Keratin Bakımı', 1], ['Maske Bakım', 3]], price: 4200, validDays: 120 },
       { name: '4 Seans Manikür & Kalıcı Oje', items: [['Kalıcı Oje', 4]], price: 2400, validDays: 120 },
     ],
+    businessType: 'kuafor',
+    license: { startOffset: -25, days: 30 },
     customers: 120,
     femaleRatio: 0.8,
     dailyFill: 0.6,
@@ -177,6 +181,8 @@ const SALONS: SalonSpec[] = [
       { name: '10\'lu Tıraş Kartı', items: [['Sakal Tıraşı', 10]], price: 1700, validDays: 180 },
       { name: 'Aylık Bakım (4× Saç + Sakal)', items: [['Saç + Sakal', 4]], price: 1900, validDays: 45 },
     ],
+    businessType: 'berber',
+    license: { startOffset: -40, days: 365 },
     customers: 70,
     femaleRatio: 0,
     dailyFill: 0.55,
@@ -208,6 +214,8 @@ export function buildSeed(today: string, nowMin = 690): DB {
     const tenant: Tenant = {
       id: T, name: spec.name, slug: spec.slug, logoColor: spec.color, plan: spec.plan, status: 'active',
       onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 120 }, createdAt: addDays(today, -200),
+      businessType: spec.businessType, license: { start: addDays(today, spec.license.startOffset), days: spec.license.days },
+      invite: { token: `used${T}`, createdAt: addDays(today, -200), usedAt: addDays(today, -199) },
     }
     db.tenants.push(tenant)
     const branches: Branch[] = spec.branches.map((b) => ({ ...b, tenantId: T }))
@@ -441,6 +449,24 @@ export function buildSeed(today: string, nowMin = 690): DB {
         body: `Hatırlatma: ${c.name.split(' ')[0]}, yarın randevunuz var. — ${spec.name}`, status: 'simulated', at: iso(today, 600),
       })
     }
+  }
+
+  // Platform listesinde filtreleri göstermek için hafif işletmeler (randevusuz)
+  const light: { id: string; name: string; slug: string; color: string; type: Tenant['businessType']; owner: string; start: number; days: number; plan: Tenant['plan']; invited: boolean; cats: [string, 'bakim' | 'fon' | 'tirnak' | 'boya' | 'kesim'][] }[] = [
+    { id: 't_nuans', name: 'Nüans Güzellik', slug: 'nuans-guzellik', color: '#e84393', type: 'guzellik', owner: 'Derya Uçar', start: -31, days: 30, plan: 'pro', invited: false, cats: [['Cilt Bakımı', 'bakim'], ['Lazer Epilasyon', 'fon'], ['Kaş & Kirpik', 'tirnak']] },
+    { id: 't_gulus', name: 'Gülüş Diş Kliniği', slug: 'gulus-dis', color: '#0984e3', type: 'dis', owner: 'Dt. Kerem Aksoy', start: -2, days: 30, plan: 'kurumsal', invited: true, cats: [['Muayene', 'kesim'], ['Dolgu & Kanal', 'boya'], ['Temizlik & Beyazlatma', 'bakim']] },
+  ]
+  for (const l of light) {
+    db.tenants.push({
+      id: l.id, name: l.name, slug: l.slug, logoColor: l.color, plan: l.plan, status: 'active', createdAt: addDays(today, l.start),
+      onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 120 },
+      businessType: l.type, license: { start: addDays(today, l.start), days: l.days },
+      invite: l.invited ? { token: `davet${l.id.slice(2)}demo2026`, createdAt: addDays(today, l.start) } : { token: `used${l.id}`, createdAt: addDays(today, l.start), usedAt: addDays(today, l.start + 1) },
+    })
+    db.branches.push({ id: `b_${l.id}`, tenantId: l.id, name: 'Merkez', address: 'Antalya', phone: '2420000000', hours: hours(540, 1140) })
+    db.users.push({ id: `u_${l.id}_owner`, tenantId: l.id, name: l.owner, role: 'owner', branchIds: [`b_${l.id}`] })
+    l.cats.forEach(([name, color], i) => db.categories.push({ id: `c_${l.id}_${i}`, tenantId: l.id, name, color, order: i }))
+    for (const t of TEMPLATES) db.templates.push({ ...t, id: id('tp_'), tenantId: l.id })
   }
 
   return db

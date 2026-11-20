@@ -13,6 +13,13 @@ export interface OnlineBookingSettings {
   minLeadMinutes: number
 }
 
+export type BusinessType = 'kuafor' | 'berber' | 'guzellik' | 'dis' | 'spa' | 'tirnak' | 'diger'
+
+export interface License {
+  start: string // 'YYYY-MM-DD'
+  days: number
+}
+
 export interface Tenant {
   id: ID
   name: string
@@ -22,6 +29,9 @@ export interface Tenant {
   status: 'active' | 'suspended'
   onlineBooking: OnlineBookingSettings
   createdAt: string
+  businessType: BusinessType
+  license: License
+  invite?: { token: string; createdAt: string; usedAt?: string }
 }
 
 export interface Branch {

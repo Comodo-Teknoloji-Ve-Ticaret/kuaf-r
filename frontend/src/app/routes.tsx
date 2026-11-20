@@ -18,6 +18,7 @@ const MyCommissionPage = lazy(() => import('../pages/staff/MyCommissionPage'))
 const SettingsPage = lazy(() => import('../pages/settings/SettingsPage'))
 const PlatformPage = lazy(() => import('../pages/platform/PlatformPage'))
 const BookingPage = lazy(() => import('../pages/booking/BookingPage'))
+const InvitePage = lazy(() => import('../pages/platform/InvitePage'))
 
 const Loading = () => <div className="page muted">Yükleniyor…</div>
 
@@ -39,6 +40,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/giris" element={<Login />} />
+      <Route path="/davet/:token" element={<Suspense fallback={<Loading />}><InvitePage /></Suspense>} />
       <Route path="/r/:slug" element={<Suspense fallback={<Loading />}><BookingPage /></Suspense>} />
       <Route path="/takvim" element={<Guard perm="calendar"><CalendarPage /></Guard>} />
       <Route path="/musteriler" element={<Guard perm="customers"><CustomersPage /></Guard>} />

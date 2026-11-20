@@ -1,15 +1,17 @@
 import {
   BarChart3, Building2, CalendarDays, ChevronDown, Gift, LogOut, MessageSquare, Monitor, Moon, MoreHorizontal,
-  Package, RotateCcw, Scissors, Settings, Sun, UserRound, Users, Wallet, type LucideIcon,
+  Package, RotateCcw, Scissors, Settings, Sun, TriangleAlert, UserRound, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import { useMemo, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { ROLE_LABEL, type Perm } from '../app/permissions'
 import { useSession, type ThemePref } from '../app/session'
-import { todayIstanbul } from '../domain/time'
+import { licenseStatus } from '../domain/license'
+import { formatDate, todayIstanbul } from '../domain/time'
 import { useDbSnapshot, useStore } from '../infrastructure'
 import { Avatar, cx, Popover, useConfirm, useToast } from './index'
 import './shell.css'
+import '../pages/platform/platform.css'
 
 export interface NavItem { to: string; label: string; icon: LucideIcon; perm: Perm; badge?: number; mobile?: boolean }
 
@@ -33,7 +35,7 @@ export function useNav(): NavItem[] {
       { to: '/raporlar', label: 'Raporlar', icon: BarChart3, perm: 'reports', mobile: true },
       { to: '/primlerim', label: 'Primlerim', icon: Wallet, perm: 'commission.own' },
       { to: '/ayarlar', label: 'Ayarlar', icon: Settings, perm: 'settings' },
-      { to: '/platform', label: 'Salonlar', icon: Building2, perm: 'platform', mobile: true },
+      { to: '/platform', label: 'İşletmeler', icon: Building2, perm: 'platform', mobile: true },
     ]
     return items.filter((i) => can(i.perm) && !(i.to === '/primlerim' && can('reports')))
   }, [db, tenant, can, branchId])
@@ -141,6 +143,18 @@ function BranchPicker() {
   )
 }
 
+function LicenseBanner() {
+  const { tenant, user } = useSession()
+  if (!tenant || !user || user.role === 'staff') return null
+  const ls = licenseStatus(tenant.license, todayIstanbul())
+  if (ls.state === 'active' || ls.state === 'locked') return null
+  const text = ls.state === 'grace'
+    ? `Lisans süreniz ${formatDate(ls.end)} tarihinde doldu. ${ls.graceLeft} gün içinde yenilenmezse panel ve online randevu kapanacak.`
+    : ls.remaining === 0 ? 'Lisansınızın bugün son günü. Kesintisiz kullanım için Comodo ile iletişime geçin.'
+    : `Lisansınızın bitmesine ${ls.remaining} gün kaldı (${formatDate(ls.end)}). Yenilemek için Comodo ile iletişime geçin.`
+  return <div className={cx('lic-banner', ls.state)} role="status"><TriangleAlert />{text}</div>
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const nav = useNav()
   const mobileItems = nav.filter((n) => n.mobile).slice(0, 4)
@@ -169,6 +183,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="spacer" />
           <div className="topbar-user"><UserMenu /></div>
         </header>
+        <LicenseBanner />
         <main className="content">{children}</main>
       </div>
       <nav className="bottom-nav">

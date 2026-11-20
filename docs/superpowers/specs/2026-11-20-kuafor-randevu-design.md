@@ -152,3 +152,10 @@ Kullanıcı **1**'i seçti.
 4. Takvim ızgarası 15 dakika.
 5. Gün sonu kapanışı günü kilitler, sadece sahip açabilir.
 6. Backend veritabanı önerisi PostgreSQL.
+
+## 10. Ek (2026-11-20): Platform paneli — işletme türü, lisans, davet linki
+
+- **İşletme türü:** Kuaför, Berber, Güzellik merkezi, Diş kliniği, Spa & masaj, Tırnak stüdyosu, Diğer. Oluştururken seçilir; platform listesinde türe göre filtre. Yeni işletmenin başlangıç hizmet kategorileri türe göre gelir.
+- **Lisans:** `license = { start, days }`; bitiş = start + days. Durumlar: aktif, yaklaşıyor (≤ 7 gün), ek süre (bitti, 3 gün tolerans), kilitli. Kilitli/askıdaki işletmede giriş ve online randevu kapanır; veriler silinmez. "Uzat": süresi geçmişse bugünden, değilse mevcut bitişe eklenir. Salon panelinde yaklaşan/ek süre uyarı şeridi. (Kullanıcı kararı: 3 gün ek süre, sonra kilit.)
+- **Davet linki:** Oluşturmada tek kullanımlık token; `#/davet/<token>` sayfasında sahip adını ve telefonunu girer, doğrudan paneline girer. Platformdan kopyala / WhatsApp ile gönder / yeni link üret.
+- Veri şeması v2; v1 kayıtlar açılışta taşınır (tür: kuaför, lisans: 30 gün).

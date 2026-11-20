@@ -3,7 +3,7 @@ import type {
   PackageDef, Product, Service, ServiceCategory, Staff, StockMove, Tenant, Ticket, TimeBlock, User,
 } from '../domain/types'
 
-export const DB_VERSION = 1
+export const DB_VERSION = 2
 
 export interface DB {
   version: number

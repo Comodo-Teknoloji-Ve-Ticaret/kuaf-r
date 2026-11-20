@@ -4,6 +4,7 @@ import { diffDays } from '../domain/time'
 import type { ID } from '../domain/types'
 import { appointmentService, durationFor, istanbulClock, type Clock } from './appointmentService'
 import type { Store } from './db'
+import { tenantAccess } from './platformService'
 import { createRepos } from './repos'
 
 export type BookingError = 'slot_taken' | 'disabled' | 'invalid_phone' | 'invalid'
@@ -24,7 +25,7 @@ export function bookingService(store: Store, slug: string, clock: Clock = istanb
   const repos = tenant ? createRepos(store, tenant.id) : null
   const live = () => {
     const t = repos?.tenants.get(tenant!.id)
-    return t && t.status === 'active' ? t : null
+    return t && tenantAccess(t, clock().date) === 'ok' ? t : null
   }
 
   function info() {

@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Branch, Tenant, User } from '../domain/types'
+import { tenantAccess } from '../application/platformService'
+import { todayIstanbul } from '../domain/time'
 import { TenantScope, useDbSnapshot } from '../infrastructure'
 import { can, type Perm } from './permissions'
 
@@ -64,7 +66,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const user = db.users.find((u) => u.id === saved.userId) ?? null
   const tenant = user?.tenantId ? db.tenants.find((t) => t.id === user.tenantId) ?? null : null
-  const suspended = tenant?.status === 'suspended'
+  const suspended = tenant ? tenantAccess(tenant, todayIstanbul()) !== 'ok' : false
   const effectiveUser = suspended ? null : user
 
   const branches = useMemo(
@@ -99,7 +101,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export const isSuspendedLogin = (db: { users: User[]; tenants: Tenant[] }, userId: string) => {
+export const isSuspendedLogin = (db: { users: User[]; tenants: Tenant[] }, userId: string, today = todayIstanbul()) => {
   const u = db.users.find((x) => x.id === userId)
-  return !!u?.tenantId && db.tenants.find((t) => t.id === u.tenantId)?.status === 'suspended'
+  const t = u?.tenantId ? db.tenants.find((x) => x.id === u.tenantId) : undefined
+  return !!t && tenantAccess(t, today) !== 'ok'
 }

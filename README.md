@@ -19,7 +19,7 @@ Comodo'nun kuaförlere sattığı çok kiracılı (çok salonlu) salon yönetim 
 | **Online randevu** | Salona özel link (`#/r/<salon>`): şube → hizmet → uzman ("fark etmez") → gün & saat → bilgiler → onay kodu + takvime ekle (.ics). Onay gerekliliği, ileri tarih ve minimum süre ayarlanır |
 | **Raporlar** | Ciro (önceki döneme göre), ortalama sepet, net, doluluk, yeni/dönen müşteri, gelmeme oranı, günlük ciro grafiği, ödeme yöntemleri, en çok kazandıran hizmetler, personel performansı ve prim, CSV |
 | **Ayarlar** | Salon bilgisi ve marka rengi, şubeler ve çalışma saatleri, kullanıcılar ve roller, online randevu, tema |
-| **Platform (Comodo)** | Salon listesi, yeni salon + sahip hesabı oluşturma, askıya alma |
+| **Platform (Comodo)** | İşletme listesi; işletme türü (kuaför, berber, güzellik merkezi, diş kliniği, spa, tırnak stüdyosu) ve türe göre filtre; lisans takibi (kullanılan/kalan gün, 7 gün kala uyarı, bitince 3 gün ek süre, sonra giriş ve online randevu kilitlenir; uzatma 30/90/180/365 gün); tek kullanımlık davet linki (kopyala / WhatsApp ile gönder / yenile); askıya alma |
 
 **Roller:** Salon Sahibi (her şey) · Resepsiyon (takvim, müşteri, kasa, stok, mesaj) · Personel (kendi takvimi ve primi) · Comodo Yönetici (platform).
 

@@ -1,5 +1,8 @@
 import { ArrowRight, Building2, CalendarCheck2, Scissors, ShieldCheck, Smartphone, Wallet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { tenantAccess } from '../application/platformService'
+import { licenseStatus } from '../domain/license'
+import { todayIstanbul } from '../domain/time'
 import { ROLE_LABEL } from '../app/permissions'
 import { isSuspendedLogin, useSession } from '../app/session'
 import { useDbSnapshot } from '../infrastructure'
@@ -20,7 +23,8 @@ export default function Login() {
 
   const go = (userId: string, role: string) => {
     if (isSuspendedLogin(db, userId)) {
-      toast('Bu salonun hesabı askıya alınmış. Comodo ile iletişime geçin.', 'error')
+      const t = db.tenants.find((x) => x.id === db.users.find((u) => u.id === userId)?.tenantId)
+      toast(t?.status === 'suspended' ? 'Bu işletmenin hesabı askıya alınmış. Comodo ile iletişime geçin.' : 'Lisans süresi doldu. Yenilemek için Comodo ile iletişime geçin.', 'error')
       return
     }
     login(userId)
@@ -64,7 +68,7 @@ export default function Login() {
                   <b>{t.name}</b>
                   <span>{db.branches.filter((b) => b.tenantId === t.id).map((b) => b.name).join(' · ')}</span>
                 </div>
-                {t.status === 'suspended' && <Badge tone="danger">Askıda</Badge>}
+                {t.status === 'suspended' ? <Badge tone="danger">Askıda</Badge> : tenantAccess(t, todayIstanbul()) === 'license' ? <Badge tone="danger">Lisans doldu</Badge> : licenseStatus(t.license, todayIstanbul()).state === 'grace' ? <Badge tone="warning">Ek süre</Badge> : null}
               </div>
               <div className="login-users">
                 {db.users.filter((u) => u.tenantId === t.id).map((u) => (
