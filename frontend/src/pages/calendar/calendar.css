@@ -150,3 +150,6 @@
 .svc-lines > div { display: flex; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--line); gap: 8px; }
 .svc-lines > div:last-child { border-bottom: none; }
 .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pending-day { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.pending-date { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pending-row { align-items: flex-start; }

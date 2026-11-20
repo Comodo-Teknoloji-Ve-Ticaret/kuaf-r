@@ -12,6 +12,7 @@ import { useRepos } from '../../infrastructure'
 import { Avatar, Button, cx, Field, IconButton, Kpi, Modal, Segmented, Select, useConfirm, useIsMobile, useToast } from '../../ui'
 import { AppointmentDetail } from './AppointmentDetail'
 import { AppointmentForm, CONFLICT_TEXT, CustomerPicker } from './AppointmentForm'
+import { PendingList } from './PendingList'
 import { TimeGrid, type Column, type GridData } from './TimeGrid'
 import type { Customer } from '../../domain/types'
 import './calendar.css'
@@ -21,6 +22,7 @@ type Panel =
   | { kind: 'edit'; appt: Appointment }
   | { kind: 'detail'; appt: Appointment }
   | { kind: 'walkin' }
+  | { kind: 'pending' }
   | null
 
 function useNow() {
@@ -208,8 +210,8 @@ export default function CalendarPage() {
         <Kpi icon={Gauge} label="Doluluk" value={<>%{kpi.occ}<div className="occ-bar"><i style={{ width: `${kpi.occ}%` }} /></div></>} />
         <div
           className={cx('kpi', kpi.pending.length > 0 && 'clickable')}
-          onClick={() => kpi.pending[0] && (setDate(kpi.pending[0].date), setPanel({ kind: 'detail', appt: [...kpi.pending].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start)[0] }))}
-          title="İlk bekleyen randevuyu aç"
+          onClick={() => kpi.pending.length > 0 && setPanel({ kind: 'pending' })}
+          title="Onay bekleyenleri listele"
         >
           <div className="kpi-icon" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}><Clock3 /></div>
           <div><b>{kpi.pending.length}</b><span>Onay bekleyen</span></div>
@@ -263,6 +265,7 @@ export default function CalendarPage() {
       {panel?.kind === 'detail' && (
         <AppointmentDetail appt={panel.appt} onClose={() => setPanel(null)} onEdit={() => setPanel({ kind: 'edit', appt: repos.appointments.get(panel.appt.id) ?? panel.appt })} />
       )}
+      {panel?.kind === 'pending' && <PendingList branchId={branchId} today={now.date} onClose={() => setPanel(null)} onOpen={(a) => { setDate(a.date); setPanel({ kind: 'detail', appt: a }) }} />}
       {panel?.kind === 'walkin' && <WalkInModal branchId={branchId} onClose={() => setPanel(null)} onDone={(a) => { setPanel(null); setDate(a.date) }} />}
     </div>
   )

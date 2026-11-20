@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDownToLine, ClipboardCheck, Minus, Package, PackagePlus, Pencil, Search } from 'lucide-react'
+import { AlertTriangle, ArrowDownToLine, ClipboardCheck, FileSpreadsheet, Minus, Package, PackagePlus, Pencil, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { trLower } from '../../application/customerService'
 import { stockService } from '../../application/stockService'
@@ -9,6 +9,7 @@ import type { Product } from '../../domain/types'
 import { useRepos } from '../../infrastructure'
 import { Badge, Button, cx, Drawer, EmptyState, Field, IconButton, Input, Kpi, Modal, PageHeader, Segmented, Select, useToast } from '../../ui'
 import { tl } from '../services/ServicesPage'
+import { ProductImport } from './ProductImport'
 import './stock.css'
 
 type MoveKind = 'in' | 'use' | 'count'
@@ -23,6 +24,7 @@ export default function StockPage() {
   const [brand, setBrand] = useState<string>('')
   const [move, setMove] = useState<{ p: Product; kind: MoveKind } | null>(null)
   const [edit, setEdit] = useState<Product | 'new' | null>(null)
+  const [importing, setImporting] = useState(false)
   const [history, setHistory] = useState<Product | null>(null)
   const products = repos.products.list()
   const list = useMemo(() => {
@@ -43,7 +45,7 @@ export default function StockPage() {
 
   return (
     <div className="page">
-      <PageHeader title="Stok" subtitle={`${products.length} ürün`} actions={<Button variant="primary" icon={PackagePlus} onClick={() => setEdit('new')}>Ürün ekle</Button>} />
+      <PageHeader title="Stok" subtitle={`${products.length} ürün`} actions={<><Button icon={FileSpreadsheet} onClick={() => setImporting(true)}>Excel'den aktar</Button><Button variant="primary" icon={PackagePlus} onClick={() => setEdit('new')}>Ürün ekle</Button></>} />
       <div className="kpis" style={{ marginBottom: 16 }}>
         <Kpi icon={Package} label="Ürün çeşidi" value={products.length} />
         <Kpi icon={AlertTriangle} label="Kritik seviyede" value={critical.length} tone="var(--danger)" />
@@ -108,6 +110,7 @@ export default function StockPage() {
       </div>
 
       {move && <MoveModal p={move.p} kind={move.kind} onClose={() => setMove(null)} onDone={(msg) => { toast(msg); setMove(null) }} />}
+      {importing && <ProductImport onClose={() => setImporting(false)} />}
       {edit && <ProductEditor product={edit === 'new' ? undefined : edit} onClose={() => setEdit(null)} />}
       {history && (
         <Drawer title={history.name} subtitle="Stok hareketleri" onClose={() => setHistory(null)}>

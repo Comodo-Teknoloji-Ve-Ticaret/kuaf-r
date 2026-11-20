@@ -6,6 +6,31 @@ const b = await puppeteer.launch({ executablePath: process.env.CHROME ?? '/Appli
 const results = []
 let page
 const errs = []
+import { deflateRawSync } from 'node:zlib'
+import { writeFileSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+const TMP = mkdtempSync(join(tmpdir(), 'makas-e2e-'))
+/** Excel benzeri gerçek .xlsx (zip + sharedStrings + sheet1) üretir */
+function makeXlsx(rows) {
+  const strings = []; const si = (v) => { let i = strings.indexOf(v); if (i < 0) { strings.push(v); i = strings.length - 1 } return i }
+  const esc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  const col = (i) => String.fromCharCode(65 + i)
+  const sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' +
+    rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((v, ci) => v === '' ? '' : typeof v === 'number' ? `<c r="${col(ci)}${ri + 1}"><v>${v}</v></c>` : `<c r="${col(ci)}${ri + 1}" t="s"><v>${si(v)}</v></c>`).join('') + '</row>').join('') + '</sheetData></worksheet>'
+  const sst = `<?xml version="1.0" encoding="UTF-8"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${strings.length}">` + strings.map((t) => `<si><t>${esc(t)}</t></si>`).join('') + '</sst>'
+  const files = { '[Content_Types].xml': '<Types/>', 'xl/workbook.xml': '<workbook><sheets><sheet name="Ürünler" sheetId="1"/></sheets></workbook>', 'xl/sharedStrings.xml': sst, 'xl/worksheets/sheet1.xml': sheet }
+  const parts = [], central = []; let off = 0
+  for (const [name, text] of Object.entries(files)) {
+    const raw = Buffer.from(text), data = deflateRawSync(raw), n = Buffer.from(name)
+    const lh = Buffer.alloc(30); lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(8, 8); lh.writeUInt32LE(data.length, 18); lh.writeUInt32LE(raw.length, 22); lh.writeUInt16LE(n.length, 26)
+    const ch = Buffer.alloc(46); ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(8, 10); ch.writeUInt32LE(data.length, 20); ch.writeUInt32LE(raw.length, 24); ch.writeUInt16LE(n.length, 28); ch.writeUInt32LE(off, 42)
+    parts.push(lh, n, data); central.push(ch, n); off += 30 + n.length + data.length
+  }
+  const cd = Buffer.concat(central), e = Buffer.alloc(22)
+  e.writeUInt32LE(0x06054b50, 0); e.writeUInt16LE(central.length / 2, 8); e.writeUInt16LE(central.length / 2, 10); e.writeUInt32LE(cd.length, 12); e.writeUInt32LE(off, 16)
+  return Buffer.concat([...parts, cd, e])
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function fresh(user, w = 1440, h = 900) {
@@ -238,6 +263,18 @@ const suites = {
       await expectText('Tamamla')
       await page.keyboard.press('Escape'); await sleep(200)
     })
+    await step('Takvim: onay bekleyenler listesi', async () => {
+      const n = await page.evaluate(() => Number([...document.querySelectorAll('.cal-kpis .kpi')].find((k) => k.textContent.includes('Onay bekleyen'))?.querySelector('b')?.textContent))
+      if (!(n >= 2)) throw new Error('demo verisinde yeterli bekleyen yok: ' + n)
+      await clickText('Onay bekleyen', '.cal-kpis .kpi'); await expectText('Onay bekleyenler')
+      const rows = await count('.drawer .pending-row')
+      if (rows !== n) throw new Error(`listede ${rows} kişi, beklenen ${n}`)
+      await clickText('Onayla', '.drawer .pending-row button'); await sleep(300)
+      if ((await count('.drawer .pending-row')) !== n - 1) throw new Error('onaylanan listeden düşmedi')
+      await page.evaluate(() => document.querySelector('.drawer .pending-row').click()); await sleep(300)
+      await expectText('Onayla')
+      await page.keyboard.press('Escape'); await sleep(200)
+    })
     await step('Takvim: sürükle-bırak taşıma', async () => {
       const r = await page.evaluate(async () => {
         const el = [...document.querySelectorAll('.ap')].find((e) => e.classList.contains('s-confirmed'))
@@ -458,6 +495,37 @@ const suites = {
       await expectText('stok güncellendi')
     })
     await step('Stok: sayım', async () => { await page.click('.stock-row [aria-label=Sayım]'); await setInput('.modal input', '5', 0); await clickText('Kaydet', '.modal button'); await sleep(300) })
+    await step('Stok: Excel (.xlsx) içe aktarma', async () => {
+      const f = join(TMP, 'urunler.xlsx')
+      writeFileSync(f, makeXlsx([['Ürün Adı', 'Marka', 'Kategori', 'Barkod', 'Alış Fiyatı', 'Satış Fiyatı (KDV Dahil)', 'KDV', 'Stok'], ['E2E Şampuan', 'TestMarka', 'Şampuan', '8690000099', 100, 240, 0.2, 7], ['E2E Maske', 'TestMarka', 'Maske', '', '80,50', '', '%20', ''], ['', 'boş', '', '', '', '', '', '']]))
+      await clickText("Excel'den aktar", '.page-head button'); await expectText('Excel ya da CSV')
+      const input = await page.$('.modal input[type=file]'); await input.uploadFile(f); await sleep(600)
+      await expectText('2 yeni'); await expectText('1 atlanacak')
+      const on = await page.evaluate(() => document.querySelector('.modal .switch')?.getAttribute('aria-checked') ?? document.querySelector('.modal .switch')?.className)
+      await clickText('2 ürünü aktar', '.modal button'); await sleep(300)
+      await expectText('2 ürün eklendi')
+      const d = await db()
+      const p = d.products.find((x) => x.name === 'E2E Şampuan')
+      if (!p || p.price !== 20000 || p.cost !== 10000 || p.vatRate !== 20 || p.stock !== 7 || p.barcode !== '8690000099') throw new Error('xlsx ürünü hatalı: ' + JSON.stringify(p) + ' switch=' + on)
+      if (!d.products.some((x) => x.name === 'E2E Maske' && x.cost === 8050)) throw new Error('2. ürün yok')
+    })
+    await step('Stok: CSV ile güncelleme (barkoddan tanır)', async () => {
+      const f = join(TMP, 'liste.csv')
+      writeFileSync(f, '\uFEFFÜrün;Barkod;Satış Fiyatı;Stok\nE2E Şampuan Yeni;8690000099;300,00;3\n')
+      await clickText("Excel'den aktar", '.page-head button')
+      const input = await page.$('.modal input[type=file]'); await input.uploadFile(f); await sleep(600)
+      await expectText('1 güncellenecek')
+      await clickText('1 ürünü aktar', '.modal button'); await sleep(300)
+      const p = (await db()).products.find((x) => x.barcode === '8690000099')
+      if (p.name !== 'E2E Şampuan Yeni' || p.price !== 30000 || p.stock !== 3 || p.brand !== 'TestMarka') throw new Error('güncelleme hatalı: ' + JSON.stringify(p))
+    })
+    await step('Stok: PDF reddedilir, yönlendirir', async () => {
+      const f = join(TMP, 'liste.pdf'); writeFileSync(f, '%PDF-1.4')
+      await clickText("Excel'den aktar", '.page-head button')
+      const input = await page.$('.modal input[type=file]'); await input.uploadFile(f); await sleep(400)
+      await expectText('PDF tabloları')
+      await page.keyboard.press('Escape'); await sleep(200)
+    })
     await step('Stok: yeni ürün + yeni marka', async () => {
       await clickText('Ürün ekle', '.page-head button')
       await fill('Ürün adı', 'Test Krem')
