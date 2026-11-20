@@ -20,3 +20,12 @@ export function parseTRY(input: string): number {
   const n = Number(clean)
   return Number.isFinite(n) ? Math.round(n * 100) : 0
 }
+
+/** KDV hariç tutara KDV ekler. */
+export const withVat = (net: number, rate: number) => Math.round(net * (1 + rate / 100))
+
+/** KDV dahil tutarı hariç + KDV olarak ayırır. */
+export function vatSplit(gross: number, rate: number) {
+  const net = Math.round(gross / (1 + rate / 100))
+  return { net, vat: gross - net }
+}

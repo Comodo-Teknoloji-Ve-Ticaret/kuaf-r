@@ -15,7 +15,7 @@ export type Repos = { [K in CollectionKey]: Collection<Row<K>> } & { tenantId: I
 const PREFIX: Record<CollectionKey, string> = {
   tenants: 't_', branches: 'b_', users: 'u_', staff: 's_', categories: 'c_', services: 'sv_', customers: 'm_',
   appointments: 'a_', blocks: 'bl_', tickets: 'k_', debtCollections: 'dc_', expenses: 'e_', dayCloses: 'dz_',
-  products: 'p_', stockMoves: 'sm_', packageDefs: 'pd_', customerPackages: 'cp_', templates: 'tp_', messages: 'ml_',
+  products: 'p_', stockMoves: 'sm_', packageDefs: 'pd_', customerPackages: 'cp_', templates: 'tp_', messages: 'ml_', colorCards: 'cc_',
 }
 
 function matches<T>(row: T, filter?: Partial<T>): boolean {

@@ -1,4 +1,5 @@
 import { DB_VERSION, type DB } from '../application/db'
+import { withVat } from '../domain/money'
 import { lineTotal, ticketTotals } from '../domain/ticket'
 import { addDays, weekday } from '../domain/time'
 import type {
@@ -53,8 +54,9 @@ interface SalonSpec {
   categories: { key: string; name: string; color: CategoryKey }[]
   services: ServiceSpec[]
   staff: { id: string; branch: string; name: string; title: string; color: string; cats: string[]; off: number; svc: number; prd: number }[]
-  products: Omit<Product, 'id' | 'tenantId'>[]
-  packages: { name: string; items: [string, number][]; price: number; validDays: number }[]
+  products: Omit<Product, 'id' | 'tenantId' | 'vatRate'>[] // fiyatlar KDV dahil (raf), seed'de hariçe çevrilir
+  packages: { name: string; items: [string, number, number?][]; price: number; validDays: number }[]
+  accounts: { name: string; kind: 'pos' | 'bank' }[]
   businessType: Tenant['businessType']
   license: { startOffset: number; days: number }
   customers: number
@@ -126,12 +128,13 @@ const SALONS: SalonSpec[] = [
       { name: 'El Kremi', brand: 'OPI', category: 'Tırnak', kind: 'retail', price: TL(450), cost: TL(240), stock: 15, critical: 4 },
     ],
     packages: [
-      { name: "5'li Fön Paketi", items: [['Fön', 5]], price: 1500, validDays: 90 },
+      { name: '8+2 Fön Paketi', items: [['Fön', 8, 2]], price: 2400, validDays: 120 },
       { name: 'Keratin + 3 Maske', items: [['Keratin Bakımı', 1], ['Maske Bakım', 3]], price: 4200, validDays: 120 },
       { name: '4 Seans Manikür & Kalıcı Oje', items: [['Kalıcı Oje', 4]], price: 2400, validDays: 120 },
     ],
     businessType: 'kuafor',
     license: { startOffset: -25, days: 30 },
+    accounts: [{ name: 'Garanti POS', kind: 'pos' }, { name: 'Ziraat POS', kind: 'pos' }, { name: 'İş Bankası (Havale)', kind: 'bank' }, { name: 'Garanti (Havale)', kind: 'bank' }],
     customers: 120,
     femaleRatio: 0.8,
     dailyFill: 0.6,
@@ -183,6 +186,7 @@ const SALONS: SalonSpec[] = [
     ],
     businessType: 'berber',
     license: { startOffset: -40, days: 365 },
+    accounts: [{ name: 'Ziraat POS', kind: 'pos' }, { name: 'Ziraat (Havale)', kind: 'bank' }],
     customers: 70,
     femaleRatio: 0,
     dailyFill: 0.55,
@@ -216,7 +220,13 @@ export function buildSeed(today: string, nowMin = 690): DB {
       onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 120 }, createdAt: addDays(today, -200),
       businessType: spec.businessType, license: { start: addDays(today, spec.license.startOffset), days: spec.license.days },
       invite: { token: `used${T}`, createdAt: addDays(today, -200), usedAt: addDays(today, -199) },
+      accounts: spec.accounts.map((a, i) => ({ id: `acc_${T}_${i}`, name: a.name, kind: a.kind, active: true })),
+      expenseCategories: ['Malzeme', 'Kira', 'Fatura', 'Maaş / Avans', 'Temizlik', 'Mutfak / İkram', 'Kargo', 'Diğer'],
+      brands: [...new Set(spec.products.map((p) => p.brand))].sort((a, b) => a.localeCompare(b, 'tr')),
+      productCategories: [...new Set(spec.products.map((p) => p.category))].sort((a, b) => a.localeCompare(b, 'tr')),
     }
+    const posIds = tenant.accounts.filter((a) => a.kind === 'pos').map((a) => a.id)
+    const bankIds = tenant.accounts.filter((a) => a.kind === 'bank').map((a) => a.id)
     db.tenants.push(tenant)
     const branches: Branch[] = spec.branches.map((b) => ({ ...b, tenantId: T }))
     db.branches.push(...branches)
@@ -235,6 +245,11 @@ export function buildSeed(today: string, nowMin = 690): DB {
         id: s.id, tenantId: T, branchId: s.branch, name: s.name, title: s.title, color: s.color, phone: `53${r.int(10000000, 99999999)}`,
         hours: withOff(br.hours, s.off), serviceIds: services.filter((sv) => s.cats.includes(catKey(sv.categoryId))).map((sv) => sv.id),
         serviceCommission: s.svc, productCommission: s.prd, active: true,
+        commissionMode: (s.id === 's_burak' || s.id === 's_can' ? 'tiered' : 'category') as Staff['commissionMode'],
+        categoryRates: s.id === 's_ayse' ? { [`c_${T}_boya`]: 35, [`c_${T}_kesim`]: 45 } : {},
+        serviceRates: {},
+        brandRates: (T === 't_lara' ? { Olaplex: 15, Moroccanoil: 12 } : { Proraso: 15 }) as Record<string, number>,
+        tiers: [{ from: 0, rate: 0 }, { from: TL(20000), rate: 35 }, { from: TL(50000), rate: 45 }],
       }
     })
     db.staff.push(...staff)
@@ -273,7 +288,7 @@ export function buildSeed(today: string, nowMin = 690): DB {
     db.customers.push(...customers)
 
     // Ürünler
-    const products: Product[] = spec.products.map((p) => ({ ...p, id: id('p_'), tenantId: T }))
+    const products: Product[] = spec.products.map((p) => ({ ...p, price: Math.round(p.price / 1.2), cost: Math.round(p.cost / 1.2), vatRate: 20, id: id('p_'), tenantId: T }))
     db.products.push(...products)
     for (const p of products) db.stockMoves.push({ id: id('sm_'), tenantId: T, productId: p.id, date: addDays(today, -45), qty: p.stock + r.int(12, 22), kind: 'in', note: 'Açılış stoku' })
     const retail = products.filter((p) => p.kind === 'retail')
@@ -281,7 +296,7 @@ export function buildSeed(today: string, nowMin = 690): DB {
     // Paketler
     const byName = (n: string) => services.find((s) => s.name === n)!
     const packages: PackageDef[] = spec.packages.map((p) => ({
-      id: id('pd_'), tenantId: T, name: p.name, items: p.items.map(([n, count]) => ({ serviceId: byName(n).id, count })), price: TL(p.price), validDays: p.validDays, active: true,
+      id: id('pd_'), tenantId: T, name: p.name, items: p.items.map(([n, count, bonus]) => ({ serviceId: byName(n).id, count, ...(bonus ? { bonus } : {}) })), price: TL(p.price), validDays: p.validDays, active: true,
     }))
     db.packageDefs.push(...packages)
 
@@ -333,7 +348,7 @@ export function buildSeed(today: string, nowMin = 690): DB {
             }))
             if (retail.length && r.chance(0.14)) {
               const p = r.pick(retail)
-              lines.push({ id: id('l_'), kind: 'product', refId: p.id, name: p.name, staffId: s.id, qty: 1, unitPrice: p.price, discount: null })
+              lines.push({ id: id('l_'), kind: 'product', refId: p.id, name: p.name, staffId: s.id, qty: 1, unitPrice: withVat(p.price, p.vatRate), discount: null })
               db.stockMoves.push({ id: id('sm_'), tenantId: T, productId: p.id, date, qty: -1, kind: 'sale', note: '' })
             }
             const ticket: Ticket = {
@@ -346,12 +361,12 @@ export function buildSeed(today: string, nowMin = 690): DB {
             const payments: Payment[] = []
             const roll = r.next()
             if (roll < 0.38) payments.push({ method: 'cash', amount: total })
-            else if (roll < 0.9) payments.push({ method: 'card', amount: total })
-            else if (roll < 0.95) payments.push({ method: 'transfer', amount: total })
+            else if (roll < 0.9) payments.push({ method: 'card', amount: total, accountId: r.pick(posIds) })
+            else if (roll < 0.95) payments.push({ method: 'transfer', amount: total, accountId: r.pick(bankIds) })
             else if (cust && d > -20) {
               const half = Math.round(total / 2 / 100) * 100
               payments.push({ method: 'cash', amount: half }, { method: 'debt', amount: total - half })
-            } else payments.push({ method: 'card', amount: total })
+            } else payments.push({ method: 'card', amount: total, accountId: r.pick(posIds) })
             ticket.payments = payments
             db.tickets.push(ticket)
           }
@@ -405,11 +420,11 @@ export function buildSeed(today: string, nowMin = 690): DB {
       const pd = packages[i % packages.length]
       const cust = regulars[i * 3]
       const soldOn = addDays(today, -r.int(5, 40))
-      const remaining = Object.fromEntries(pd.items.map((it) => [it.serviceId, Math.max(0, it.count - r.int(0, it.count))]))
+      const remaining = Object.fromEntries(pd.items.map((it) => { const total = it.count + (it.bonus ?? 0); return [it.serviceId, Math.max(1, total - r.int(0, total - 1))] }))
       const line: TicketLine = { id: id('l_'), kind: 'package_sale', refId: pd.id, name: pd.name, qty: 1, unitPrice: pd.price, discount: null }
       const ticket: Ticket = {
         id: id('k_'), tenantId: T, branchId: branches[0].id, date: soldOn, customerId: cust.id, lines: [line], discount: null, tip: 0,
-        payments: [{ method: 'card', amount: lineTotal(line) }], status: 'closed', createdAt: iso(soldOn, 700), closedAt: iso(soldOn, 705),
+        payments: [{ method: 'card', amount: lineTotal(line), accountId: posIds[0] }], status: 'closed', createdAt: iso(soldOn, 700), closedAt: iso(soldOn, 705),
       }
       db.tickets.push(ticket)
       db.customerPackages.push({ id: id('cp_'), tenantId: T, customerId: cust.id, packageDefId: pd.id, remaining, soldOn, expiresOn: addDays(soldOn, pd.validDays), ticketId: ticket.id })
@@ -449,6 +464,23 @@ export function buildSeed(today: string, nowMin = 690): DB {
         body: `Hatırlatma: ${c.name.split(' ')[0]}, yarın randevunuz var. — ${spec.name}`, status: 'simulated', at: iso(today, 600),
       })
     }
+
+    // Boya kartları (boya yapan salonlarda)
+    if (T === 't_lara') {
+      const shades = ['6.0', '7.1', '7.3', '8.1', '9.1', '10.21', '5.35', '6.45']
+      for (const c of regulars.slice(0, 18)) {
+        for (let k = 0; k < r.int(1, 3); k++) {
+          const brand = r.pick(['Majirel', 'Igora', 'Inoa', 'Koleston'])
+          db.colorCards.push({
+            id: id('cc_'), tenantId: T, customerId: c.id, date: addDays(today, -r.int(3, 120)), staffId: r.pick(['s_ayse', 's_mert']),
+            items: Array.from({ length: r.int(1, 3) }, () => ({ brand, shade: r.pick(shades), grams: r.pick([20, 30, 40, 60]) })),
+            developer: r.pick(['%6 (20 vol)', '%9 (30 vol)', '%3 (10 vol)']), processingMin: r.pick([25, 30, 35, 40]),
+            note: r.pick(['Dipler önce, uçlara son 10 dk', 'Tonlama ile bitirildi', 'Saç derisi hassas, bariyer krem', '', 'Gri kapatma %100']),
+            liked: r.chance(0.5),
+          })
+        }
+      }
+    }
   }
 
   // Platform listesinde filtreleri göstermek için hafif işletmeler (randevusuz)
@@ -462,6 +494,8 @@ export function buildSeed(today: string, nowMin = 690): DB {
       onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 120 },
       businessType: l.type, license: { start: addDays(today, l.start), days: l.days },
       invite: l.invited ? { token: `davet${l.id.slice(2)}demo2026`, createdAt: addDays(today, l.start) } : { token: `used${l.id}`, createdAt: addDays(today, l.start), usedAt: addDays(today, l.start + 1) },
+      accounts: [{ id: `acc_${l.id}_pos`, name: 'POS cihazı', kind: 'pos', active: true }, { id: `acc_${l.id}_bank`, name: 'Banka hesabı', kind: 'bank', active: true }],
+      expenseCategories: ['Malzeme', 'Kira', 'Fatura', 'Maaş / Avans', 'Temizlik', 'Diğer'], brands: [], productCategories: [],
     })
     db.branches.push({ id: `b_${l.id}`, tenantId: l.id, name: 'Merkez', address: 'Antalya', phone: '2420000000', hours: hours(540, 1140) })
     db.users.push({ id: `u_${l.id}_owner`, tenantId: l.id, name: l.owner, role: 'owner', branchIds: [`b_${l.id}`] })

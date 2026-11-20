@@ -3,6 +3,7 @@ import { addDays, diffDays } from '../domain/time'
 import type { BusinessType, CategoryKey, Tenant } from '../domain/types'
 import { istanbulClock, type Clock } from './appointmentService'
 import { normalizePhone } from '../domain/phone'
+import { DEFAULT_EXPENSE_CATS } from '../infrastructure/localStore'
 import { TEMPLATES } from '../infrastructure/seed'
 import { newId, type Store } from './db'
 
@@ -53,6 +54,8 @@ export function platformService(store: Store, clock: Clock = istanbulClock) {
       id: tid, name: input.name.trim(), slug, logoColor: '#6c5ce7', plan: input.plan, status: 'active', createdAt: today,
       onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 120 },
       businessType: type, license: { start: today, days: input.licenseDays ?? 30 }, invite: { token: newToken(), createdAt: today },
+      accounts: [{ id: newId('acc_'), name: 'POS cihazı', kind: 'pos', active: true }, { id: newId('acc_'), name: 'Banka hesabı', kind: 'bank', active: true }],
+      expenseCategories: [...DEFAULT_EXPENSE_CATS], brands: [], productCategories: [],
     }
     store.write({
       ...db,

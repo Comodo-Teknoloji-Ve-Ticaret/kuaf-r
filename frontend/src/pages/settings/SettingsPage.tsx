@@ -1,4 +1,4 @@
-import { Building2, Copy, ExternalLink, Globe, Monitor, Moon, Palette, Plus, Sun, UserPlus, Users } from 'lucide-react'
+import { Building2, Copy, CreditCard, Landmark, ExternalLink, Globe, Monitor, Moon, Palette, Plus, Sun, UserPlus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { platformService, slugify } from '../../application/platformService'
 import { ROLE_LABEL } from '../../app/permissions'
@@ -11,10 +11,11 @@ import { HoursEditor } from '../staff/StaffPage'
 import '../staff/staff.css'
 import './settings.css'
 
-type Section = 'salon' | 'branches' | 'users' | 'online' | 'theme'
+type Section = 'salon' | 'branches' | 'accounts' | 'users' | 'online' | 'theme'
 const SECTIONS: { key: Section; label: string; icon: typeof Building2 }[] = [
   { key: 'salon', label: 'Salon', icon: Palette },
   { key: 'branches', label: 'Şubeler & saatler', icon: Building2 },
+  { key: 'accounts', label: 'POS & banka hesapları', icon: CreditCard },
   { key: 'users', label: 'Kullanıcılar', icon: Users },
   { key: 'online', label: 'Online randevu', icon: Globe },
   { key: 'theme', label: 'Görünüm', icon: Sun },
@@ -38,6 +39,7 @@ export default function SettingsPage() {
         <div className="set-body">
           {sec === 'salon' && <SalonSection />}
           {sec === 'branches' && <BranchesSection />}
+          {sec === 'accounts' && <AccountsSection />}
           {sec === 'users' && <UsersSection />}
           {sec === 'online' && <OnlineSection />}
           {sec === 'theme' && <ThemeSection />}
@@ -126,6 +128,62 @@ function BranchEditor({ branch, onClose, onSaved }: { branch?: Branch; onClose: 
       <Field label="Adres"><Input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} /></Field>
       <Field label="Çalışma saatleri" hint="Personel mesaileri bu saatlerle sınırlanır."><HoursEditor value={f.hours} onChange={(hours) => setF({ ...f, hours })} /></Field>
     </Drawer>
+  )
+}
+
+function AccountsSection() {
+  const repos = useRepos()
+  const { tenant } = useSession()
+  const toast = useToast()
+  const [name, setName] = useState('')
+  const [kind, setKind] = useState<'pos' | 'bank'>('pos')
+  if (!tenant) return null
+  const save = (accounts: typeof tenant.accounts) => repos.tenants.upsert({ ...tenant, accounts })
+  const groups = [
+    { k: 'pos' as const, title: 'POS cihazları (kart)', icon: CreditCard, hint: 'Örn. Garanti POS, Ziraat POS' },
+    { k: 'bank' as const, title: 'Banka hesapları (havale / EFT)', icon: Landmark, hint: 'Örn. İş Bankası, Garanti' },
+  ]
+  return (
+    <div className="stack">
+      {groups.map((g) => {
+        const list = tenant.accounts.filter((a) => a.kind === g.k)
+        return (
+          <div key={g.k} className="card">
+            <div className="card-head"><h3 className="row" style={{ gap: 8 }}><g.icon size={17} /> {g.title}</h3></div>
+            <div className="list" style={{ marginTop: 8 }}>
+              {list.length === 0 && <p className="muted t-small" style={{ padding: 14 }}>Tanımlı değil. {g.hint}</p>}
+              {list.map((a) => (
+                <div key={a.id} className="list-item">
+                  <input
+                    className="input"
+                    defaultValue={a.name}
+                    style={{ flex: 1, height: 36 }}
+                    onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== a.name) { save(tenant.accounts.map((x) => (x.id === a.id ? { ...x, name: v } : x))); toast('Kaydedildi') } }}
+                  />
+                  <span className="t-small muted">{a.active ? 'Kullanımda' : 'Pasif'}</span>
+                  <Switch on={a.active} onChange={(v) => save(tenant.accounts.map((x) => (x.id === a.id ? { ...x, active: v } : x)))} label="Aktif" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+      <div className="card card-pad stack">
+        <h3 className="set-h">Yeni ekle</h3>
+        <div className="row" style={{ flexWrap: 'wrap' }}>
+          <div className="seg">
+            <button className={kind === 'pos' ? 'on' : ''} onClick={() => setKind('pos')}>POS cihazı</button>
+            <button className={kind === 'bank' ? 'on' : ''} onClick={() => setKind('bank')}>Banka hesabı</button>
+          </div>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === 'pos' ? 'Örn. Ziraat POS' : 'Örn. Garanti (Havale)'} style={{ flex: 1, minWidth: 180 }} />
+          <Button variant="primary" icon={Plus} disabled={!name.trim()} onClick={() => {
+            save([...tenant.accounts, { id: `acc_${Math.random().toString(36).slice(2, 9)}`, name: name.trim(), kind, active: true }])
+            toast(`${name.trim()} eklendi`); setName('')
+          }}>Ekle</Button>
+        </div>
+        <p className="t-small muted">Kasada kart veya havale ile ödeme alırken ve gider girerken bu listeden seçilir; gün sonunda her biri ayrı görünür. Pasif yapılanlar seçimde çıkmaz, geçmiş kayıtları korunur.</p>
+      </div>
+    </div>
   )
 }
 

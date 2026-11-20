@@ -8,7 +8,8 @@ export const hours9to12: WeekHours = {
 export function mkStaff(p: Partial<Staff> = {}): Staff {
   return {
     id: 's1', tenantId: 't1', branchId: 'b1', name: 'Ayşe', title: 'Kuaför', color: '#e17055', phone: '',
-    hours: hours9to12, serviceIds: [], serviceCommission: 40, productCommission: 10, active: true, ...p,
+    hours: hours9to12, serviceIds: [], serviceCommission: 40, productCommission: 10, active: true,
+    commissionMode: 'category', categoryRates: {}, serviceRates: {}, brandRates: {}, tiers: [], ...p,
   }
 }
 

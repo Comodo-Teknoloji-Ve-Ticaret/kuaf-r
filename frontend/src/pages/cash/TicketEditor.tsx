@@ -4,7 +4,7 @@ import { priceFor } from '../../application/appointmentService'
 import { cashService, CASH_ERROR_TEXT } from '../../application/cashService'
 import { trLower } from '../../application/customerService'
 import { useSession } from '../../app/session'
-import { applyDiscount, formatTRY, parseTRY } from '../../domain/money'
+import { applyDiscount, formatTRY, parseTRY, withVat } from '../../domain/money'
 import { lineTotal, ticketTotals } from '../../domain/ticket'
 import { formatDate, todayIstanbul } from '../../domain/time'
 import type { Customer, Ticket, TicketLine } from '../../domain/types'
@@ -37,7 +37,7 @@ export function TicketEditor({ ticket, onClosed, onDeleted }: { ticket: Ticket; 
     const match = (s: string) => !term || trLower(s).includes(term)
     const lineStaffObj = repos.staff.get(lineStaff)
     if (tab === 'service') return repos.services.list().filter((s) => match(s.name)).map((s) => ({ key: s.id, title: s.name, sub: `${s.duration} dk`, price: priceFor(s, lineStaff), disabled: lineStaffObj ? !lineStaffObj.serviceIds.includes(s.id) : false, add: () => ({ kind: 'service' as const, refId: s.id, name: s.name, staffId: lineStaff, qty: 1, unitPrice: priceFor(s, lineStaff), discount: null }) }))
-    if (tab === 'product') return repos.products.list({ kind: 'retail' }).filter((p) => match(p.name) || match(p.brand)).map((p) => ({ key: p.id, title: p.name, sub: `${p.brand} · stok ${p.stock}`, price: p.price, disabled: p.stock <= 0, add: () => ({ kind: 'product' as const, refId: p.id, name: p.name, staffId: lineStaff, qty: 1, unitPrice: p.price, discount: null }) }))
+    if (tab === 'product') return repos.products.list({ kind: 'retail' }).filter((p) => match(p.name) || match(p.brand)).map((p) => ({ key: p.id, title: p.name, sub: `${p.brand} · stok ${p.stock}`, price: withVat(p.price, p.vatRate), disabled: p.stock <= 0, add: () => ({ kind: 'product' as const, refId: p.id, name: p.name, staffId: lineStaff, qty: 1, unitPrice: withVat(p.price, p.vatRate), discount: null }) }))
     if (tab === 'package_sale') return repos.packageDefs.list({ active: true }).filter((p) => match(p.name)).map((p) => ({ key: p.id, title: p.name, sub: `${p.validDays} gün geçerli`, price: p.price, disabled: false, add: () => ({ kind: 'package_sale' as const, refId: p.id, name: p.name, qty: 1, unitPrice: p.price, discount: null }) }))
     if (!ticket.customerId) return []
     const today = todayIstanbul()
@@ -45,7 +45,7 @@ export function TicketEditor({ ticket, onClosed, onDeleted }: { ticket: Ticket; 
       Object.entries(cp.remaining).map(([sid, n]) => {
         const svc = repos.services.get(sid)
         const def = repos.packageDefs.get(cp.packageDefId)
-        return { key: cp.id + sid, title: `${svc?.name ?? 'Hizmet'} (paket)`, sub: `${def?.name} · ${n} seans kaldı`, price: 0, disabled: n <= 0, add: () => ({ kind: 'package_use' as const, refId: cp.id, serviceId: sid, name: `${svc?.name ?? 'Hizmet'} (paket)`, staffId: lineStaff, qty: 1, unitPrice: 0, discount: null }) }
+        return { key: cp.id + sid, title: `${svc?.name ?? 'Hizmet'} (paket)`, sub: `${def?.name} · ${n} kullanım kaldı`, price: 0, disabled: n <= 0, add: () => ({ kind: 'package_use' as const, refId: cp.id, serviceId: sid, name: `${svc?.name ?? 'Hizmet'} (paket)`, staffId: lineStaff, qty: 1, unitPrice: 0, discount: null }) }
       }),
     )
   }, [tab, q, repos, lineStaff, ticket.customerId])
@@ -104,7 +104,14 @@ export function TicketEditor({ ticket, onClosed, onDeleted }: { ticket: Ticket; 
                 onBlur={(e) => { const v = parseTRY(e.target.value); if (v >= 0 && v !== l.unitPrice) cash.updateLine(ticket.id, l.id, { unitPrice: v }) }}
               />
             ) : null}
-            <b className="tl-total num">{formatTRY(lineTotal(l))}</b>
+            {l.kind === 'package_use' ? (
+              <div className="pkg-pill">
+                <span>Paketten · {(() => { const cp = repos.customerPackages.get(l.refId); return cp ? `${cp.remaining[l.serviceId ?? ''] ?? 0} kaldı` : '' })()}</span>
+                {!closed && <button onClick={() => cash.chargeInstead(ticket.id, l.id)}>Ücretli yap</button>}
+              </div>
+            ) : (
+              <b className="tl-total num">{formatTRY(lineTotal(l))}</b>
+            )}
             {!closed && <IconButton icon={Trash2} label="Satırı sil" onClick={() => cash.removeLine(ticket.id, l.id)} />}
           </div>
         ))}

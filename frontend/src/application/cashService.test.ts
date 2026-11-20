@@ -10,7 +10,7 @@ const clock = () => ({ date: '2026-11-20', min: 700 })
 
 function withProduct() {
   const r = setup()
-  r.products.upsert({ id: 'p1', name: 'Şampuan', brand: 'X', category: 'Şampuan', kind: 'retail', price: 50000, cost: 20000, stock: 5, critical: 2 })
+  r.products.upsert({ id: 'p1', name: 'Şampuan', brand: 'X', category: 'Şampuan', kind: 'retail', price: 50000, cost: 20000, vatRate: 0, stock: 5, critical: 2 })
   return r
 }
 
@@ -118,5 +118,91 @@ describe('cashService.payers', () => {
     expect(p.cash.entries.map((e) => e.name)).toEqual(['Müşterisiz adisyon', 'Can Yıldız'])
     expect(p.transfer).toMatchObject({ people: 2, total: 22000 })
     expect(p.transfer.entries.find((e) => e.name === 'Can Yıldız')).toMatchObject({ amount: 7000, collection: true })
+  })
+})
+
+describe('packages: bonus and automatic use', () => {
+  const svcLine = (serviceId: string) => ({ kind: 'service' as const, refId: serviceId, name: 'Fön', staffId: 's1', qty: 1, unitPrice: 30000, discount: null })
+  function withPackage(remaining: number, expiresOn = '2027-01-01') {
+    const r = setup()
+    r.customerPackages.upsert({ id: 'cp1', customerId: 'm1', packageDefId: 'pd1', remaining: { sv2: remaining }, soldOn: '2026-11-01', expiresOn })
+    return r
+  }
+  it('8+2 package gives 10 uses', () => {
+    const r = setup()
+    r.packageDefs.upsert({ id: 'pd1', name: '8+2 Fön', items: [{ serviceId: 'sv2', count: 8, bonus: 2 }], price: 240000, validDays: 120, active: true })
+    const c = cashService(r, reception, clock)
+    const t = c.openTicket({ branchId: 'b1', customerId: 'm1' })
+    c.addLine(t.id, { kind: 'package_sale', refId: 'pd1', name: '8+2 Fön', qty: 1, unitPrice: 240000, discount: null })
+    c.pay(t.id, [{ method: 'card', amount: 240000, accountId: 'pos1' }])
+    expect(r.customerPackages.list({ customerId: 'm1' })[0].remaining).toEqual({ sv2: 10 })
+  })
+  it('a service the customer has in a package is added as a free package use', () => {
+    const r = withPackage(1)
+    const c = cashService(r, reception, clock)
+    const t = c.openTicket({ branchId: 'b1', customerId: 'm1' })
+    const after = c.addLine(t.id, svcLine('sv2'))
+    expect(after.lines[0]).toMatchObject({ kind: 'package_use', refId: 'cp1', serviceId: 'sv2', unitPrice: 0 })
+    const again = c.addLine(t.id, svcLine('sv2'))
+    expect(again.lines[1]).toMatchObject({ kind: 'service', unitPrice: 30000 }) // paket bitti, ücretli
+  })
+  it('expired packages are not used', () => {
+    const r = withPackage(3, '2026-11-10')
+    const c = cashService(r, reception, clock)
+    const t = c.openTicket({ branchId: 'b1', customerId: 'm1' })
+    expect(c.addLine(t.id, svcLine('sv2')).lines[0].kind).toBe('service')
+  })
+  it('picking the customer later converts matching service lines', () => {
+    const r = withPackage(2)
+    const c = cashService(r, reception, clock)
+    const t = c.openTicket({ branchId: 'b1', customerId: null })
+    c.addLine(t.id, svcLine('sv2'))
+    expect(c.setCustomer(t.id, 'm1').lines[0].kind).toBe('package_use')
+  })
+  it('a ticket from an appointment uses the package and needs no payment', () => {
+    const r = withPackage(2)
+    const a = appointmentService(r, clock).create({ branchId: 'b1', staffId: 's1', customerId: 'm1', date: '2026-11-20', start: 600, serviceIds: ['sv2'] }).appt
+    const t = cashService(r, reception, clock).fromAppointment(a.id)
+    expect(t.lines[0].kind).toBe('package_use')
+    expect(cashService(r, reception, clock).pay(t.id, []).ok).toBe(true)
+    expect(r.customerPackages.get('cp1')!.remaining.sv2).toBe(1)
+  })
+  it('a package use line can be switched back to a paid service', () => {
+    const r = withPackage(2)
+    const c = cashService(r, reception, clock)
+    const t = c.openTicket({ branchId: 'b1', customerId: 'm1' })
+    const l = c.addLine(t.id, svcLine('sv2')).lines[0]
+    expect(c.chargeInstead(t.id, l.id).lines[0]).toMatchObject({ kind: 'service', refId: 'sv2', unitPrice: 30000 })
+  })
+})
+
+describe('day summary with expenses and accounts', () => {
+  it('nets expenses out of each method and splits card/transfer by POS/account', () => {
+    const r = setup()
+    const c = cashService(r, reception, clock)
+    const sell = (payments: { method: 'cash' | 'card' | 'transfer'; amount: number; accountId?: string }[]) => {
+      const t = c.openTicket({ branchId: 'b1', customerId: null })
+      c.addLine(t.id, { kind: 'service', refId: 'sv1', name: 'x', staffId: 's1', qty: 1, unitPrice: payments.reduce((s, p) => s + p.amount, 0), discount: null })
+      c.pay(t.id, payments)
+    }
+    sell([{ method: 'card', amount: 50000, accountId: 'pos1' }])
+    sell([{ method: 'card', amount: 20000, accountId: 'pos2' }])
+    sell([{ method: 'cash', amount: 30000 }])
+    sell([{ method: 'transfer', amount: 40000, accountId: 'bank1' }])
+    c.addExpense({ branchId: 'b1', category: 'Malzeme', amount: 5000, method: 'cash', note: '' })
+    c.addExpense({ branchId: 'b1', category: 'Fatura', amount: 8000, method: 'card', accountId: 'pos1', note: '' })
+    c.addExpense({ branchId: 'b1', category: 'Kira', amount: 10000, method: 'transfer', accountId: 'bank1', note: '' })
+    const d = c.dayCash('b1', '2026-11-20')
+    expect(d.methods).toEqual({
+      cash: { gross: 30000, expense: 5000, net: 25000 },
+      card: { gross: 70000, expense: 8000, net: 62000 },
+      transfer: { gross: 40000, expense: 10000, net: 30000 },
+    })
+    expect(d.revenue).toBe(140000)
+    expect(d.expenseTotal).toBe(23000)
+    expect(d.netTotal).toBe(117000)
+    expect(d.accounts.map((a) => [a.name, a.gross, a.expense, a.net])).toEqual([
+      ['Garanti POS', 50000, 8000, 42000], ['Ziraat POS', 20000, 0, 20000], ['İş Bankası', 40000, 10000, 30000],
+    ])
   })
 })

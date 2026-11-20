@@ -6,6 +6,7 @@ import { netLineAmounts } from '../../domain/ticket'
 import { formatDate, monthName, todayIstanbul } from '../../domain/time'
 import { useRepos } from '../../infrastructure'
 import { EmptyState, Kpi, PageHeader, Select } from '../../ui'
+import { commissionCtx } from '../../application/commissionCtx'
 import { monthStats } from './StaffPage'
 import './staff.css'
 
@@ -23,6 +24,12 @@ export default function MyCommissionPage() {
     const d = new Date(Date.UTC(y, m - 1 - i, 1))
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
   })
+  const ctx = commissionCtx(repos)
+  const rateFor = (l: { kind: string; refId: string }) => {
+    if (l.kind === 'product') { const b = ctx.brandOf(l.refId); return (b ? staff.brandRates[b] : undefined) ?? staff.productCommission }
+    const c = ctx.categoryOf(l.refId)
+    return staff.serviceRates[l.refId] ?? (c ? staff.categoryRates[c] : undefined) ?? staff.serviceCommission
+  }
   const lines = repos.tickets.list({ status: 'closed' })
     .filter((t) => t.date.startsWith(month))
     .flatMap((t) => {
@@ -35,7 +42,7 @@ export default function MyCommissionPage() {
     <div className="page">
       <PageHeader
         title="Primlerim"
-        subtitle={`${staff.name} · hizmet %${staff.serviceCommission}, ürün %${staff.productCommission}`}
+        subtitle={`${staff.name} · ${staff.commissionMode === 'tiered' ? 'kademeli hizmet primi (aylık)' : 'kategori bazlı hizmet primi'}`}
         actions={
           <Select value={month} onChange={(e) => setMonth(e.target.value)} style={{ width: 170 }}>
             {months.map((m) => <option key={m} value={m}>{monthName(Number(m.slice(5)))} {m.slice(0, 4)}</option>)}
@@ -58,7 +65,7 @@ export default function MyCommissionPage() {
                   <td className="muted">{formatDate(t.date)}</td>
                   <td>{l.name}</td>
                   <td className="r num">{formatTRY(amount)}</td>
-                  <td className="r num t-strong">{formatTRY(Math.round((amount * (l.kind === 'service' ? staff.serviceCommission : staff.productCommission)) / 100))}</td>
+                  <td className="r num t-strong">{staff.commissionMode === 'tiered' && l.kind === 'service' ? <span className="muted t-small">kademeli</span> : formatTRY(Math.round((amount * rateFor(l)) / 100))}</td>
                 </tr>
               ))}
             </tbody>

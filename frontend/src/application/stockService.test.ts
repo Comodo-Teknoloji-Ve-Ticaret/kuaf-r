@@ -4,7 +4,7 @@ import { setup } from './testkit'
 
 function withProduct() {
   const r = setup()
-  r.products.upsert({ id: 'p1', name: 'Boya 7.1', brand: 'X', category: 'Boya', kind: 'professional', price: 0, cost: 26000, stock: 10, critical: 3 })
+  r.products.upsert({ id: 'p1', name: 'Boya 7.1', brand: 'X', category: 'Boya', kind: 'professional', price: 0, cost: 26000, vatRate: 20, stock: 10, critical: 3 })
   return r
 }
 const clock = () => ({ date: '2026-11-20', min: 600 })

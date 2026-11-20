@@ -11,10 +11,12 @@ import { addDays, diffDays, formatDate, todayIstanbul, toHHMM } from '../../doma
 import type { Customer } from '../../domain/types'
 import { useRepos } from '../../infrastructure'
 import {
-  Avatar, Badge, Button, cx, Drawer, EmptyState, Field, Input, Kpi, PageHeader, Switch, Tabs, Textarea, useIsMobile, useToast,
+  Avatar, Badge, Button, cx, Drawer, EmptyState, Field, Input, Kpi, PageHeader, Select, Switch, Tabs, Textarea, useIsMobile, useToast,
 } from '../../ui'
 import { STATUS_TONE } from '../calendar/AppointmentDetail'
 import { AppointmentForm } from '../calendar/AppointmentForm'
+import { cashService } from '../../application/cashService'
+import { ColorCards } from './ColorCards'
 import './customers.css'
 
 type Filter = 'all' | 'vip' | 'debt' | 'birthday' | 'lost' | 'new'
@@ -255,7 +257,10 @@ export function CustomerEditor({ customer, onClose, onSaved }: { customer?: Cust
 function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: () => void }) {
   const repos = useRepos()
   const { branch, tenant } = useSession()
-  const [tab, setTab] = useState<'general' | 'appts' | 'sales' | 'packages'>('general')
+  const [tab, setTab] = useState<'general' | 'color' | 'appts' | 'sales' | 'packages'>('general')
+  const [sellPkg, setSellPkg] = useState('')
+  const { user } = useSession()
+  const nav = useNavigate()
   const [editing, setEditing] = useState(false)
   const [booking, setBooking] = useState(false)
   const stats = customerService(repos).stats(customer.id)
@@ -313,6 +318,7 @@ function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: ()
         onChange={setTab}
         options={[
           { value: 'general', label: 'Notlar' },
+          { value: 'color', label: 'Boya kartı', count: repos.colorCards.list({ customerId: customer.id }).length },
           { value: 'appts', label: 'Randevular', count: appts.length },
           { value: 'sales', label: 'Satışlar', count: tickets.length },
           { value: 'packages', label: 'Paketler', count: packages.length },
@@ -325,6 +331,7 @@ function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: ()
           {stats.noShows > 0 && <div className="conflict-box">Bu müşteri {stats.noShows} kez randevusuna gelmedi.</div>}
         </div>
       )}
+      {tab === 'color' && <ColorCards customer={customer} />}
       {tab === 'appts' && (
         <div className="list card">
           {appts.length === 0 && <p className="muted" style={{ padding: 14 }}>Randevu yok.</p>}
@@ -360,7 +367,24 @@ function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: ()
       )}
       {tab === 'packages' && (
         <div className="stack">
-          {packages.length === 0 && <p className="muted">Paket yok. Kasadan paket satışı yapabilirsiniz.</p>}
+          <div className="card card-pad pkg-sell">
+            <b>Paket sat</b>
+            <div className="row">
+              <Select value={sellPkg} onChange={(e) => setSellPkg(e.target.value)}>
+                <option value="">Paket seçin…</option>
+                {repos.packageDefs.list({ active: true }).map((d) => <option key={d.id} value={d.id}>{d.name} · {formatTRY(d.price)}</option>)}
+              </Select>
+              <Button variant="primary" disabled={!sellPkg || !branch} onClick={() => {
+                const def = repos.packageDefs.get(sellPkg)!
+                const cash = cashService(repos, user)
+                const t = cash.openTicket({ branchId: branch!.id, customerId: customer.id })
+                cash.addLine(t.id, { kind: 'package_sale', refId: def.id, name: def.name, qty: 1, unitPrice: def.price, discount: null })
+                nav(`/kasa?adisyon=${t.id}`)
+              }}>Ödemeye geç</Button>
+            </div>
+            <span className="t-small muted">Ödeme alınınca paket müşteriye tanımlanır; her gelişinde ilgili hizmet otomatik paketten düşer.</span>
+          </div>
+          {packages.length === 0 && <p className="muted">Aktif paket yok.</p>}
           {packages.map((p) => {
             const def = repos.packageDefs.get(p.packageDefId)
             const expired = p.expiresOn < today
@@ -371,7 +395,8 @@ function CustomerDetail({ customer, onClose }: { customer: Customer; onClose: ()
                   <Badge tone={expired ? 'neutral' : 'success'}>{expired ? 'Süresi doldu' : `${formatDate(p.expiresOn)}'e kadar`}</Badge>
                 </div>
                 {Object.entries(p.remaining).map(([sid, n]) => {
-                  const total = def?.items.find((i) => i.serviceId === sid)?.count ?? n
+                  const it = def?.items.find((i) => i.serviceId === sid)
+                  const total = it ? it.count + (it.bonus ?? 0) : n
                   return (
                     <div key={sid} className="pkg-line">
                       <span>{svcName(sid)}</span>

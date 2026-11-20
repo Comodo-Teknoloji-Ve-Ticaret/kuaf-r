@@ -32,6 +32,18 @@ export interface Tenant {
   businessType: BusinessType
   license: License
   invite?: { token: string; createdAt: string; usedAt?: string }
+  accounts: Account[]
+  expenseCategories: string[]
+  brands: string[]
+  productCategories: string[]
+}
+
+/** POS cihazı (kart) veya banka hesabı (havale) */
+export interface Account {
+  id: ID
+  name: string
+  kind: 'pos' | 'bank'
+  active: boolean
 }
 
 export interface Branch {
@@ -64,9 +76,19 @@ export interface Staff {
   phone: string
   hours: WeekHours
   serviceIds: ID[]
-  serviceCommission: number // yüzde, 0-100
-  productCommission: number
+  serviceCommission: number // varsayılan hizmet %'si (kategori modunda kategori tanımlı değilse)
+  productCommission: number // varsayılan ürün %'si (marka tanımlı değilse)
   active: boolean
+  commissionMode: 'category' | 'tiered'
+  categoryRates: Record<ID, number>
+  serviceRates: Record<ID, number>
+  brandRates: Record<string, number>
+  tiers: CommissionTier[] // kademeli modda: aylık hizmet cirosu dilimleri (kuruş), marjinal
+}
+
+export interface CommissionTier {
+  from: number
+  rate: number
 }
 
 export type CategoryKey = 'boya' | 'kesim' | 'bakim' | 'fon' | 'tirnak' | 'sakal' | 'diger'
@@ -159,6 +181,7 @@ export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'debt'
 export interface Payment {
   method: PaymentMethod
   amount: number
+  accountId?: ID
 }
 
 export type TicketLineKind = 'service' | 'product' | 'package_sale' | 'package_use'
@@ -173,6 +196,7 @@ export interface TicketLine {
   unitPrice: number
   discount: Discount | null
   serviceId?: ID // package_use: düşülen hizmet
+  noPackage?: boolean // kullanıcı paketten düşmeyi kapattı (ücretli)
 }
 
 export interface Ticket {
@@ -200,6 +224,7 @@ export interface DebtCollection {
   date: string
   amount: number
   method: Exclude<PaymentMethod, 'debt'>
+  accountId?: ID
 }
 
 export interface Expense {
@@ -210,6 +235,7 @@ export interface Expense {
   category: string
   amount: number
   method: Exclude<PaymentMethod, 'debt'>
+  accountId?: ID
   note: string
 }
 
@@ -233,8 +259,9 @@ export interface Product {
   barcode?: string
   category: string
   kind: 'retail' | 'professional'
-  price: number
-  cost: number
+  price: number // KDV hariç satış
+  cost: number // KDV hariç alış
+  vatRate: number // %
   stock: number
   critical: number
 }
@@ -254,7 +281,7 @@ export interface PackageDef {
   id: ID
   tenantId: ID
   name: string
-  items: { serviceId: ID; count: number }[]
+  items: { serviceId: ID; count: number; bonus?: number }[] // toplam kullanım = count + bonus
   price: number
   validDays: number
   active: boolean
@@ -294,4 +321,17 @@ export interface MessageLog {
   body: string
   status: 'simulated' | 'opened'
   at: string
+}
+
+export interface ColorCard {
+  id: ID
+  tenantId: ID
+  customerId: ID
+  date: string
+  staffId?: ID
+  items: { brand: string; shade: string; grams: number }[]
+  developer: string // oksidan, ör. %6 / 20 vol
+  processingMin: number
+  note: string
+  liked: boolean
 }

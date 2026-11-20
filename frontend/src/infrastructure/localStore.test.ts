@@ -98,7 +98,7 @@ describe('schema migration', () => {
     storage.setItem('k', JSON.stringify(v1))
     const store = createLocalStore('k', storage, emptyDb, '2026-11-20')
     expect(store.recovered).toBe(false)
-    expect(store.read().version).toBe(2)
+    expect(store.read().version).toBe(DB_VERSION)
     // Lisans taşıma gününden başlar; eski işletme anında kilitlenmez
     expect(store.read().tenants[0]).toMatchObject({ name: 'Eski', businessType: 'kuafor', license: { start: '2026-11-20', days: 30 } })
   })
@@ -107,5 +107,27 @@ describe('schema migration', () => {
     storage.setItem('k', JSON.stringify({ ...emptyDb(), version: 1, seededFor: '2026-11-19' }))
     const store = createLocalStore('k', storage, () => ({ ...emptyDb(), seededFor: 'fresh' }), '2026-11-20')
     expect(store.read().seededFor).toBe('fresh')
+  })
+})
+
+describe('schema migration v2 → v3', () => {
+  it('adds accounts/brands/commission/vat defaults and keeps shelf prices the same', () => {
+    const storage = memoryStorage()
+    const v2 = {
+      ...emptyDb(), version: 2,
+      tenants: [{ id: 't1', name: 'Eski', slug: 'eski', logoColor: '#000', plan: 'pro', status: 'active', createdAt: '2026-11-01', businessType: 'kuafor', license: { start: '2026-11-01', days: 30 }, onlineBooking: { enabled: true, requireApproval: true, maxDaysAhead: 30, minLeadMinutes: 60 } }],
+      staff: [{ id: 's1', tenantId: 't1', branchId: 'b1', name: 'A', title: '', color: '#000', phone: '', hours: {}, serviceIds: [], serviceCommission: 40, productCommission: 10, active: true }],
+      products: [{ id: 'p1', tenantId: 't1', name: 'Şampuan', brand: 'Loreal', category: 'Şampuan', kind: 'retail', price: 120000, cost: 60000, stock: 1, critical: 1 }],
+    }
+    storage.setItem('k', JSON.stringify(v2))
+    const db = createLocalStore('k', storage, emptyDb, '2026-11-21').read()
+    expect(db.version).toBe(3)
+    expect(db.tenants[0].accounts.map((a) => a.kind)).toEqual(['pos', 'bank'])
+    expect(db.tenants[0].brands).toEqual(['Loreal'])
+    expect(db.tenants[0].productCategories).toEqual(['Şampuan'])
+    expect(db.tenants[0].expenseCategories.length).toBeGreaterThan(3)
+    expect(db.staff[0]).toMatchObject({ commissionMode: 'category', categoryRates: {}, serviceRates: {}, brandRates: {} })
+    expect(db.products[0]).toMatchObject({ vatRate: 20, price: 100000, cost: 50000 })
+    expect(db.colorCards).toEqual([])
   })
 })

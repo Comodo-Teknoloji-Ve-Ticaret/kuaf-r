@@ -40,7 +40,7 @@ export default function PackagesPage() {
                   <div className="pkg-price">{formatTRY(d.price)}{save > 0 && <small>{formatTRY(normal)}</small>}</div>
                   {save > 0 && <Badge tone="success">%{save} avantaj</Badge>}
                   <div className="pkg-items">
-                    {d.items.map((i) => <div key={i.serviceId}><span>{svc(i.serviceId)?.name}</span><b>× {i.count}</b></div>)}
+                    {d.items.map((i) => <div key={i.serviceId}><span>{svc(i.serviceId)?.name}</span><b>{i.bonus ? `${i.count}+${i.bonus} = ${i.count + i.bonus} kullanım` : `× ${i.count}`}</b></div>)}
                   </div>
                   <p className="t-small muted">{d.validDays} gün geçerli · {sold.filter((s) => s.packageDefId === d.id).length} satış{!d.active && ' · pasif'}</p>
                 </div>
@@ -57,7 +57,7 @@ export default function PackagesPage() {
                 const d = repos.packageDefs.get(s.packageDefId)
                 const expired = s.expiresOn < today
                 const left = Object.values(s.remaining).reduce((a, b) => a + b, 0)
-                const total = d?.items.reduce((a, b) => a + b.count, 0) ?? left
+                const total = d?.items.reduce((a, b) => a + b.count + (b.bonus ?? 0), 0) ?? left
                 return (
                   <div key={s.id} className={cx('list-item clickable', expired && 'expired')} style={expired ? { opacity: 0.55 } : undefined} onClick={() => c && nav(`/musteriler/${c.id}`)}>
                     <Avatar name={c?.name ?? '?'} size={34} />
@@ -91,14 +91,16 @@ function PackageEditor({ def, onClose }: { def?: PackageDef; onClose: () => void
       toast('Paket kaydedildi'); onClose()
     }}>Kaydet</Button></>}>
       <Field label="Paket adı"><Input autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Örn. 10'lu Fön Kartı" /></Field>
-      <Field label="İçerik">
+      <Field label="İçerik" hint="Hizmet · ücretli adet + hediye adet. Örn. 8 + 2 → müşteri 10 kez kullanır.">
         <div className="stack" style={{ gap: 8 }}>
           {f.items.map((it, i) => (
             <div key={i} className="row">
               <Select value={it.serviceId} onChange={(e) => setF({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, serviceId: e.target.value } : x)) })}>
                 {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </Select>
-              <Input type="number" min={1} style={{ width: 80 }} value={it.count} onChange={(e) => setF({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, count: Number(e.target.value) } : x)) })} />
+              <Input type="number" min={1} style={{ width: 72 }} title="Ücretli adet" value={it.count} onChange={(e) => setF({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, count: Number(e.target.value) } : x)) })} />
+              <span className="muted">+</span>
+              <Input type="number" min={0} style={{ width: 64 }} title="Hediye (bonus)" placeholder="0" value={it.bonus || ''} onChange={(e) => setF({ ...f, items: f.items.map((x, j) => (j === i ? { ...x, bonus: Number(e.target.value) || undefined } : x)) })} />
               <IconButton icon={Trash2} label="Kaldır" onClick={() => setF({ ...f, items: f.items.filter((_, j) => j !== i) })} />
             </div>
           ))}

@@ -4,25 +4,48 @@ import { isActive, workingRange } from '../../domain/availability'
 import { commissionFor } from '../../domain/commission'
 import { formatTRY } from '../../domain/money'
 import { netLineAmounts } from '../../domain/ticket'
-import { formatDate, parseHHMM, todayIstanbul, toHHMM, weekdayName } from '../../domain/time'
+import { addDays, formatDate, parseHHMM, todayIstanbul, toHHMM, weekdayName } from '../../domain/time'
 import type { Staff, TimeBlock, Weekday, WeekHours } from '../../domain/types'
 import { useSession } from '../../app/session'
 import { useRepos } from '../../infrastructure'
-import { Avatar, Badge, Button, cx, Drawer, Field, IconButton, Input, PageHeader, Select, Switch, Tabs, useConfirm, useToast } from '../../ui'
+import { commissionCtx } from '../../application/commissionCtx'
+import { Avatar, Badge, Button, cx, Drawer, Field, IconButton, Input, PageHeader, Segmented, Select, Switch, Tabs, useConfirm, useToast } from '../../ui'
+import { CommissionEditor } from './CommissionEditor'
 import './staff.css'
 
 const COLORS = ['#e17055', '#0984e3', '#00b894', '#8e6cf0', '#e84393', '#fdcb6e', '#00cec9', '#6c5ce7', '#d63031', '#12a37b']
 const WEEK: Weekday[] = [1, 2, 3, 4, 5, 6, 0]
 
-export function monthStats(repos: ReturnType<typeof useRepos>, staff: Staff, month: string) {
-  const tickets = repos.tickets.list({ status: 'closed' }).filter((t) => t.date.startsWith(month))
+export interface DateRange { from: string; to: string }
+
+export function rangeStats(repos: ReturnType<typeof useRepos>, staff: Staff, range: DateRange) {
+  const tickets = repos.tickets.list({ status: 'closed' }).filter((t) => t.date >= range.from && t.date <= range.to)
   let revenue = 0
   let services = 0
+  let products = 0
   for (const t of tickets) {
     const net = netLineAmounts(t)
-    for (const l of t.lines) if (l.staffId === staff.id && (l.kind === 'service' || l.kind === 'product')) { revenue += net.get(l.id) ?? 0; if (l.kind === 'service') services++ }
+    for (const l of t.lines) {
+      if (l.staffId !== staff.id) continue
+      if (l.kind === 'service') { revenue += net.get(l.id) ?? 0; services++ }
+      else if (l.kind === 'product') { revenue += net.get(l.id) ?? 0; products += l.qty }
+      else if (l.kind === 'package_use') services++
+    }
   }
-  return { revenue, services, commission: commissionFor(staff, tickets) }
+  return { revenue, services, products, commission: commissionFor(staff, tickets, commissionCtx(repos)) }
+}
+
+export function monthStats(repos: ReturnType<typeof useRepos>, staff: Staff, month: string) {
+  return rangeStats(repos, staff, { from: `${month}-01`, to: `${month}-31` })
+}
+
+type Preset = 'month' | 'lastMonth' | '7d' | 'today' | 'custom'
+function presetRange(p: Preset, today: string): DateRange {
+  const first = `${today.slice(0, 7)}-01`
+  if (p === 'today') return { from: today, to: today }
+  if (p === '7d') return { from: addDays(today, -6), to: today }
+  if (p === 'lastMonth') return { from: `${addDays(first, -1).slice(0, 7)}-01`, to: addDays(first, -1) }
+  return { from: first, to: today }
 }
 
 export default function StaffPage() {
@@ -31,8 +54,14 @@ export default function StaffPage() {
   const [open, setOpen] = useState<Staff | 'new' | null>(null)
   const [showAll, setShowAll] = useState(false)
   const today = todayIstanbul()
-  const month = today.slice(0, 7)
+  const [preset, setPreset] = useState<Preset>('month')
+  const [custom, setCustom] = useState<DateRange>(presetRange('month', today))
+  const range = preset === 'custom' ? custom : presetRange(preset, today)
   const list = repos.staff.list().filter((s) => showAll || s.branchId === branch?.id)
+  const stats = useMemo(() => new Map(list.map((s) => [s.id, rangeStats(repos, s, range)])), [repos, list, range.from, range.to]) // eslint-disable-line react-hooks/exhaustive-deps
+  const ranked = [...list].filter((s) => s.active).sort((a, b) => (stats.get(b.id)?.revenue ?? 0) - (stats.get(a.id)?.revenue ?? 0))
+  const top = Math.max(1, ...ranked.map((s) => stats.get(s.id)?.revenue ?? 0))
+  const totals = ranked.reduce((acc, s) => { const x = stats.get(s.id)!; return { revenue: acc.revenue + x.revenue, commission: acc.commission + x.commission.total } }, { revenue: 0, commission: 0 })
 
   return (
     <div className="page">
@@ -46,9 +75,52 @@ export default function StaffPage() {
           </>
         }
       />
+      <div className="staff-filters">
+        <Segmented value={preset} onChange={setPreset} options={[{ value: 'today', label: 'Bugün' }, { value: '7d', label: '7 gün' }, { value: 'month', label: 'Bu ay' }, { value: 'lastMonth', label: 'Geçen ay' }, { value: 'custom', label: 'Tarih seç' }]} />
+        {preset === 'custom' && (
+          <div className="row" style={{ gap: 6 }}>
+            <Input type="date" value={custom.from} max={custom.to} onChange={(e) => e.target.value && setCustom({ ...custom, from: e.target.value })} />
+            <span className="muted">–</span>
+            <Input type="date" value={custom.to} min={custom.from} onChange={(e) => e.target.value && setCustom({ ...custom, to: e.target.value })} />
+          </div>
+        )}
+      </div>
+
+      <div className="card perf-card">
+        <div className="card-head">
+          <div><h3>Kim ne kadar yaptı?</h3><p className="t-small muted">{formatDate(range.from, { year: true })} – {formatDate(range.to, { year: true })} · kapanmış adisyonlar, indirim sonrası</p></div>
+          <div className="perf-total"><span>Toplam</span><b>{formatTRY(Math.round(totals.revenue / 100) * 100)}</b><span>Prim {formatTRY(Math.round(totals.commission / 100) * 100)}</span></div>
+        </div>
+        <div className="table-wrap" style={{ marginTop: 8 }}>
+          <table className="table">
+            <thead><tr><th>#</th><th>Personel</th><th style={{ width: '34%' }}>Ciro</th><th className="r">İşlem</th><th className="r">Ürün</th><th className="r">Prim</th></tr></thead>
+            <tbody>
+              {ranked.map((s, i) => {
+                const x = stats.get(s.id)!
+                return (
+                  <tr key={s.id} className="clickable" onClick={() => setOpen(s)}>
+                    <td className="muted num">{i + 1}</td>
+                    <td><div className="row" style={{ gap: 10 }}><Avatar name={s.name} color={s.color} size={30} /><div><div className="t-strong">{s.name}</div><div className="t-small muted">{s.commissionMode === 'tiered' ? 'Kademeli prim' : 'Kategori primi'}</div></div></div></td>
+                    <td>
+                      <div className="row" style={{ gap: 10 }}>
+                        <div className="perf-bar"><i style={{ width: `${(x.revenue / top) * 100}%`, background: s.color }} /></div>
+                        <b className="num" style={{ minWidth: 92, textAlign: 'right' }}>{formatTRY(Math.round(x.revenue / 100) * 100)}</b>
+                      </div>
+                    </td>
+                    <td className="r num">{x.services}</td>
+                    <td className="r num">{x.products}</td>
+                    <td className="r num t-strong">{formatTRY(x.commission.total)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="staff-grid">
         {list.map((s) => {
-          const st = monthStats(repos, s, month)
+          const st = stats.get(s.id)!
           const todays = repos.appointments.list({ staffId: s.id, date: today }).filter(isActive)
           const wr = workingRange(s, today)
           const busy = todays.reduce((a, x) => a + x.end - x.start, 0)
@@ -69,7 +141,7 @@ export default function StaffPage() {
                 <div className="occ-track"><i style={{ width: `${occ}%`, background: s.color }} /></div>
               </div>
               <div className="staff-nums">
-                <div><span>Bu ay ciro</span><b>{formatTRY(st.revenue)}</b></div>
+                <div><span>Ciro</span><b>{formatTRY(Math.round(st.revenue / 100) * 100)}</b></div>
                 <div><span>İşlem</span><b>{st.services}</b></div>
                 <div><span>Prim</span><b>{formatTRY(st.commission.total)}</b></div>
               </div>
@@ -123,6 +195,7 @@ function StaffDetail({ staff, onClose }: { staff?: Staff; onClose: () => void })
     branchId: branch?.id ?? '', name: '', title: 'Kuaför', color: COLORS[repos.staff.list().length % COLORS.length], phone: '',
     hours: branchHours ?? { 0: null, 1: { open: 540, close: 1140 }, 2: { open: 540, close: 1140 }, 3: { open: 540, close: 1140 }, 4: { open: 540, close: 1140 }, 5: { open: 540, close: 1140 }, 6: { open: 540, close: 1140 } },
     serviceIds: [], serviceCommission: 35, productCommission: 10, active: true,
+    commissionMode: 'category', categoryRates: {}, serviceRates: {}, brandRates: {}, tiers: [{ from: 0, rate: 0 }, { from: 5_000_000, rate: 40 }],
   })
   const [blk, setBlk] = useState({ date: today, kind: 'leave' as TimeBlock['kind'], start: '12:00', end: '13:00', note: '' })
   const cats = repos.categories.list().sort((a, b) => a.order - b.order)
@@ -153,7 +226,7 @@ function StaffDetail({ staff, onClose }: { staff?: Staff; onClose: () => void })
           { value: 'hours', label: 'Mesai' },
           ...(staff ? [{ value: 'leave' as const, label: 'İzin & mola', count: blocks.length }] : []),
           { value: 'services', label: 'Hizmetler', count: f.serviceIds.length },
-          ...(staff ? [{ value: 'commission' as const, label: 'Prim' }] : []),
+          { value: 'commission', label: 'Prim' },
         ]}
       />
       {tab === 'profile' && (
@@ -173,10 +246,6 @@ function StaffDetail({ staff, onClose }: { staff?: Staff; onClose: () => void })
               {COLORS.map((c) => <button key={c} className={cx('color-dot', f.color === c && 'on')} style={{ background: c }} onClick={() => setF({ ...f, color: c })} aria-label={c} />)}
             </div>
           </Field>
-          <div className="grid-2">
-            <Field label="Hizmet primi (%)"><Input type="number" min={0} max={100} value={f.serviceCommission} onChange={(e) => setF({ ...f, serviceCommission: Number(e.target.value) })} /></Field>
-            <Field label="Ürün satış primi (%)"><Input type="number" min={0} max={100} value={f.productCommission} onChange={(e) => setF({ ...f, productCommission: Number(e.target.value) })} /></Field>
-          </div>
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <div><div className="t-strong">Aktif</div><div className="t-small muted">Pasif personel takvimde ve online randevuda görünmez</div></div>
             <Switch on={f.active} onChange={(v) => setF({ ...f, active: v })} />
@@ -255,20 +324,19 @@ function StaffDetail({ staff, onClose }: { staff?: Staff; onClose: () => void })
           })}
         </div>
       )}
-      {tab === 'commission' && st && (
+      {tab === 'commission' && (
         <div className="stack">
-          <div className="cust-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-            <div className="mini-stat"><span>Bu ay ciro</span><b>{formatTRY(st.revenue)}</b></div>
-            <div className="mini-stat"><span>İşlem</span><b>{st.services}</b></div>
-            <div className="mini-stat accent"><span>Toplam prim</span><b>{formatTRY(st.commission.total)}</b></div>
-          </div>
-          <div className="summary-box" style={{ background: 'var(--surface-2)', borderRadius: 14, padding: '12px 14px' }}>
-            <div className="sum-row"><span className="muted">Hizmet primi (%{f.serviceCommission})</span><b>{formatTRY(st.commission.service)}</b></div>
-            <div className="sum-row"><span className="muted">Ürün primi (%{f.productCommission})</span><b>{formatTRY(st.commission.product)}</b></div>
-            <div className="sum-row"><span className="muted">Bahşiş</span><b>{formatTRY(st.commission.tip)}</b></div>
-            <div className="sum-row total"><span>Ödenecek</span><b>{formatTRY(st.commission.total)}</b></div>
-          </div>
-          <p className="t-small muted">Prim, kapanmış adisyonlardaki indirim sonrası tutar üzerinden hesaplanır.</p>
+          {st && (
+            <>
+              <div className="cust-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+                <div className="mini-stat"><span>Bu ay ciro</span><b>{formatTRY(st.revenue)}</b></div>
+                <div className="mini-stat"><span>Hizmet / ürün primi</span><b>{formatTRY(st.commission.service)} / {formatTRY(st.commission.product)}</b></div>
+                <div className="mini-stat accent"><span>Bu ay toplam prim</span><b>{formatTRY(st.commission.total)}</b></div>
+              </div>
+              <p className="t-small muted">Kaydedilmiş ayarlarla hesaplanır. Değişiklikleri görmek için kaydedin.</p>
+            </>
+          )}
+          <CommissionEditor f={f} setF={setF} />
         </div>
       )}
     </Drawer>

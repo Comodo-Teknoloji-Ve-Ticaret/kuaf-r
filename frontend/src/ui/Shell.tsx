@@ -24,7 +24,7 @@ export function useNav(): NavItem[] {
     const pending = tid ? db.appointments.filter((a) => a.tenantId === tid && a.branchId === branchId && a.status === 'pending' && a.date >= today).length : 0
     const critical = tid ? db.products.filter((p) => p.tenantId === tid && p.stock <= p.critical).length : 0
     const items: NavItem[] = [
-      { to: '/takvim', label: 'Takvim', icon: CalendarDays, perm: 'calendar', badge: pending || undefined, mobile: true },
+      { to: '/takvim', label: 'Randevu', icon: CalendarDays, perm: 'calendar', badge: pending || undefined, mobile: true },
       { to: '/musteriler', label: 'Müşteriler', icon: Users, perm: 'customers', mobile: true },
       { to: '/kasa', label: 'Kasa', icon: Wallet, perm: 'cash', mobile: true },
       { to: '/hizmetler', label: 'Hizmetler', icon: Scissors, perm: 'services' },

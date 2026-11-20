@@ -5,6 +5,7 @@ import {
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { appointmentService, SOURCE_LABEL, STATUS_LABEL } from '../../application/appointmentService'
+import { cashService } from '../../application/cashService'
 import { customerService } from '../../application/customerService'
 import { formatTRY } from '../../domain/money'
 import { formatPhone, whatsappUrl } from '../../domain/phone'
@@ -22,7 +23,7 @@ const FLOW: AppointmentStatus[] = ['confirmed', 'arrived', 'in_service', 'comple
 
 export function AppointmentDetail({ appt, onClose, onEdit }: { appt: Appointment; onClose: () => void; onEdit: () => void }) {
   const repos = useRepos()
-  const { tenant, can } = useSession()
+  const { tenant, can, user } = useSession()
   const toast = useToast()
   const confirm = useConfirm()
   const nav = useNavigate()
@@ -48,7 +49,7 @@ export function AppointmentDetail({ appt, onClose, onEdit }: { appt: Appointment
   }
 
   const toCash = () => {
-    const t = svc.toTicket(a.id)
+    const t = cashService(repos, user).fromAppointment(a.id)
     if (a.status !== 'completed' && a.status !== 'in_service') svc.setStatus(a.id, 'in_service')
     nav(`/kasa?adisyon=${t.id}`)
   }

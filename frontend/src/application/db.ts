@@ -1,9 +1,9 @@
 import type {
-  Appointment, Branch, Customer, CustomerPackage, DayClose, DebtCollection, Expense, MessageLog, MessageTemplate,
+  Appointment, Branch, ColorCard, Customer, CustomerPackage, DayClose, DebtCollection, Expense, MessageLog, MessageTemplate,
   PackageDef, Product, Service, ServiceCategory, Staff, StockMove, Tenant, Ticket, TimeBlock, User,
 } from '../domain/types'
 
-export const DB_VERSION = 2
+export const DB_VERSION = 3
 
 export interface DB {
   version: number
@@ -27,6 +27,7 @@ export interface DB {
   customerPackages: CustomerPackage[]
   templates: MessageTemplate[]
   messages: MessageLog[]
+  colorCards: ColorCard[]
 }
 
 export type CollectionKey = Exclude<keyof DB, 'version' | 'seededFor'>

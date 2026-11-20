@@ -8,13 +8,13 @@ Comodo'nun kuaförlere sattığı çok kiracılı (çok salonlu) salon yönetim 
 
 | Modül | İçerik |
 |---|---|
-| **Takvim** | Personel sütunlu gün görünümü, hafta görünümü, 15 dk ızgara, sürükle-bırak taşıma, alttan çekerek süre uzatma, çakışma/mesai/izin uyarısı, "şu an" çizgisi, randevusuz müşteri, tekrarlayan randevu, durum akışı (Bekliyor → Onaylandı → Geldi → İşlemde → Tamamlandı / Gelmedi / İptal), kısayollar (`N`, `T`, `←`/`→`) |
-| **Müşteriler** | Ad/telefon ile anlık arama, mükerrer telefon engeli (0532…/+90… aynı sayılır), müşteri kartı: geçmiş, harcama, bakiye, gelmedi sayısı, boya formülü notları, paketler, CSV |
-| **Kasa** | Randevudan tek tıkla adisyon, hizmet/ürün/paket satışı/paketten kullanım, satır ve toplam indirim, bahşiş, nakit/kart/havale/veresiye ve parçalı ödeme, para üstü, veresiye tahsilatı, giderler, gün sonu kapanışı (kilitlenir, sadece sahip açar), gün sonunda nakit/kart/havale ile kaç kişiden ödeme alındığı ve isim listesi (CSV) |
+| **Randevu (takvim)** | Personel sütunlu gün görünümü, hafta görünümü, 15 dk ızgara, sürükle-bırak taşıma, alttan çekerek süre uzatma, çakışma/mesai/izin uyarısı, "şu an" çizgisi, randevusuz müşteri, tekrarlayan randevu, durum akışı (Bekliyor → Onaylandı → Geldi → İşlemde → Tamamlandı / Gelmedi / İptal), kısayollar (`N`, `T`, `←`/`→`) |
+| **Müşteriler** | Boya kartı (marka, numara, gram, oksidan, süre, beğenildi), karttan paket satışı, ad/telefon ile anlık arama, mükerrer telefon engeli (0532…/+90… aynı sayılır), müşteri kartı: geçmiş, harcama, bakiye, gelmedi sayısı, boya formülü notları, paketler, CSV |
+| **Kasa** | Birden fazla POS cihazı ve banka hesabı (ödemede seçilir, gün sonunda ayrı döküm), gün sonunda yönteme göre brüt − gider = net, paketli hizmet otomatik paketten düşer, randevudan tek tıkla adisyon, hizmet/ürün/paket satışı/paketten kullanım, satır ve toplam indirim, bahşiş, nakit/kart/havale/veresiye ve parçalı ödeme, para üstü, veresiye tahsilatı, giderler, gün sonu kapanışı (kilitlenir, sadece sahip açar), gün sonunda nakit/kart/havale ile kaç kişiden ödeme alındığı ve isim listesi (CSV) |
 | **Hizmetler** | Kategoriler (takvim rengi), satır içi süre/fiyat düzenleme, personele özel fiyat/süre, online görünürlük |
-| **Personel** | Haftalık mesai, izin/mola, yapabildiği hizmetler, hizmet ve ürün prim oranları, aylık prim özeti; personel rolü için "Primlerim" |
-| **Stok** | Satış / salon kullanımı ürünleri, giriş/kullanım/sayım, hareket geçmişi, kritik stok uyarısı, satışta otomatik düşüm |
-| **Paketler** | Seans paketleri (ör. 5'li fön), geçerlilik süresi, satılan paketler ve kalan seans takibi |
+| **Personel** | Tarih aralığına göre kim kaç TL yaptı; prim: kategori/hizmet bazlı % veya aylık kademeli (yalnızca aşan kısma), ürün primi markaya göre; haftalık mesai, izin/mola, yapabildiği hizmetler; personel rolü için "Primlerim" |
+| **Stok** | Kategori → marka filtresi, marka/kategori listeden seçilir veya elle eklenir, alış/satış KDV hariç + KDV oranı (kasada KDV dahil), satış / salon kullanımı ürünleri, giriş/kullanım/sayım, hareket geçmişi, kritik stok uyarısı, satışta otomatik düşüm |
+| **Paketler** | Bonuslu seans paketleri (ör. 8+2 fön = 10 kullanım), geçerlilik süresi, satılan paketler ve kalan seans takibi |
 | **Mesajlar** | Değişkenli şablonlar ve canlı önizleme, yarınki randevulara toplu hatırlatma, doğum günü kutlaması, WhatsApp ile gönderim, gönderim kaydı (SMS demo modunda simüle edilir) |
 | **Online randevu** | Salona özel link (`#/r/<salon>`): şube → hizmet → uzman ("fark etmez") → gün & saat → bilgiler → onay kodu + takvime ekle (.ics). Onay gerekliliği, ileri tarih ve minimum süre ayarlanır |
 | **Raporlar** | Ciro (önceki döneme göre), ortalama sepet, net, doluluk, yeni/dönen müşteri, gelmeme oranı, günlük ciro grafiği, ödeme yöntemleri, en çok kazandıran hizmetler, personel performansı ve prim, CSV |

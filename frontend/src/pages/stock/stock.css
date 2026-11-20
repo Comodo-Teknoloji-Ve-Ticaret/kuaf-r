@@ -25,3 +25,11 @@
 .save-pill { align-self: flex-start; }
 .pkg-def > * { position: relative; }
 .pkg-def > .badge { align-self: flex-start; }
+
+.stock-facets { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.facet { display: flex; gap: 10px; align-items: center; }
+.facet-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); width: 64px; flex: none; }
+.facet .chip { height: 30px; font-size: 12.5px; }
+.chip-n { font-size: 11px; font-weight: 700; background: var(--surface-3); color: var(--muted); border-radius: 999px; padding: 0 6px; }
+.chip.on .chip-n { background: var(--accent); color: var(--accent-contrast); }
+@media (max-width: 640px) { .facet { flex-direction: column; align-items: flex-start; } .facet .filter-chips { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; } }

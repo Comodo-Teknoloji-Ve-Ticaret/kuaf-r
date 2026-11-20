@@ -3,6 +3,7 @@ import { commissionFor } from '../domain/commission'
 import { netLineAmounts, ticketTotals } from '../domain/ticket'
 import { addDays } from '../domain/time'
 import type { ID, PaymentMethod, Staff } from '../domain/types'
+import { commissionCtx } from './commissionCtx'
 import type { Repos } from './repos'
 
 export interface Range { from: string; to: string }
@@ -60,6 +61,7 @@ export function reportService(repos: Repos) {
 
   function byStaff(r: Range, b?: ID): { staff: Staff; revenue: number; services: number; commission: number }[] {
     const ts = tickets(r, b)
+    const ctx = commissionCtx(repos)
     return repos.staff
       .list()
       .filter((s) => !b || s.branchId === b)
@@ -70,7 +72,7 @@ export function reportService(repos: Repos) {
           const net = netLineAmounts(t)
           for (const l of t.lines) if (l.staffId === s.id && (l.kind === 'service' || l.kind === 'product')) { revenue += net.get(l.id) ?? 0; if (l.kind === 'service') services++ }
         }
-        return { staff: s, revenue, services, commission: commissionFor(s, ts).total }
+        return { staff: s, revenue, services, commission: commissionFor(s, ts, ctx).total }
       })
       .sort((a, b2) => b2.revenue - a.revenue)
   }
