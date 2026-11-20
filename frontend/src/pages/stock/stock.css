@@ -1,0 +1,27 @@
+.crit-banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 14px; background: var(--danger-soft); color: var(--danger); margin-bottom: 16px; }
+.crit-banner > svg { width: 18px; height: 18px; flex: none; }
+.crit-banner span { flex: 1; color: var(--text); }
+.stock-list { display: flex; flex-direction: column; }
+.stock-row { display: grid; grid-template-columns: 1fr 220px auto; gap: 18px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.stock-row:last-child { border-bottom: none; }
+.stock-row.low { background: color-mix(in srgb, var(--danger-soft) 45%, transparent); }
+.stock-main { display: flex; flex-direction: column; cursor: pointer; min-width: 0; }
+.stock-main b { font-size: 14px; }
+.stock-level .occ-track { height: 6px; border-radius: 6px; background: var(--surface-3); overflow: hidden; margin-top: 6px; }
+.stock-level .occ-track i { display: block; height: 100%; border-radius: 6px; }
+.stock-actions { display: flex; gap: 4px; align-items: center; }
+@media (max-width: 760px) {
+  .stock-row { grid-template-columns: 1fr; gap: 8px; }
+}
+.pkg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.pkg-def { padding: 18px; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; }
+.pkg-def::before { content: ''; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, var(--accent-soft), transparent 70%); }
+.pkg-def.inactive { opacity: 0.55; }
+.pkg-def h3 { font-size: 16px; }
+.pkg-price { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.pkg-price small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 6px; text-decoration: line-through; }
+.pkg-items { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.pkg-items div { display: flex; justify-content: space-between; }
+.save-pill { align-self: flex-start; }
+.pkg-def > * { position: relative; }
+.pkg-def > .badge { align-self: flex-start; }

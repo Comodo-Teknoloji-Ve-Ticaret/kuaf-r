@@ -77,6 +77,13 @@ describe('buildSeed', () => {
     expect(db.appointments.some((a) => a.date === '2026-11-20')).toBe(true)
     expect(db.tickets.some((t) => t.status === 'closed')).toBe(true)
   })
+  it('keeps product stock equal to its movements and never negative', () => {
+    const db = buildSeed('2026-11-20')
+    for (const p of db.products) {
+      expect(p.stock).toBeGreaterThanOrEqual(0)
+      expect(db.stockMoves.filter((m) => m.productId === p.id).reduce((s, m) => s + m.qty, 0)).toBe(p.stock)
+    }
+  })
   it('fits comfortably in localStorage', () => {
     expect(JSON.stringify(buildSeed('2026-11-20')).length).toBeLessThan(3_000_000)
   })

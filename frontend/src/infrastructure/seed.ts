@@ -408,7 +408,12 @@ export function buildSeed(today: string, nowMin = 690): DB {
     }
 
     // Stokları satışlarla tutarlı hale getir
-    for (const p of products) p.stock = db.stockMoves.filter((m) => m.productId === p.id).reduce((s, m) => s + m.qty, 0)
+    for (const p of products) {
+      const desired = spec.products.find((x) => x.name === p.name)!.stock
+      const current = db.stockMoves.filter((m) => m.productId === p.id).reduce((s, m) => s + m.qty, 0)
+      if (current < desired) db.stockMoves.push({ id: id('sm_'), tenantId: T, productId: p.id, date: addDays(today, -20), qty: desired - current, kind: 'in', note: 'Tedarikçi siparişi' })
+      p.stock = Math.max(current, desired)
+    }
     // Kritik seviyede ürünler kalsın
     for (const p of products.slice(0, 3)) {
       const target = Math.max(0, p.critical - 1)
