@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.superpowers/
+frontend/e2e/fail-*.png
+**/package-lock.json

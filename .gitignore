@@ -5,3 +5,4 @@ bin/
 obj/
 .DS_Store
 e2e/fail-*.png
+graphify-out/
