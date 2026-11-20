@@ -159,3 +159,19 @@ Kullanıcı **1**'i seçti.
 - **Lisans:** `license = { start, days }`; bitiş = start + days. Durumlar: aktif, yaklaşıyor (≤ 7 gün), ek süre (bitti, 3 gün tolerans), kilitli. Kilitli/askıdaki işletmede giriş ve online randevu kapanır; veriler silinmez. "Uzat": süresi geçmişse bugünden, değilse mevcut bitişe eklenir. Salon panelinde yaklaşan/ek süre uyarı şeridi. (Kullanıcı kararı: 3 gün ek süre, sonra kilit.)
 - **Davet linki:** Oluşturmada tek kullanımlık token; `#/davet/<token>` sayfasında sahip adını ve telefonunu girer, doğrudan paneline girer. Platformdan kopyala / WhatsApp ile gönder / yeni link üret.
 - Veri şeması v2; v1 kayıtlar açılışta taşınır (tür: kuaför, lisans: 30 gün).
+
+## 11. Ek (2026-11-21): Kasa, prim, stok, boya kartı, paket iyileştirmeleri
+
+Kullanıcı kararları: kademeli prim **sadece aşan kısma** (marjinal); personel başına **kategori primi veya kademeli prim** (biri); ürün fiyatları **KDV hariç** girilir, kasada KDV dahil kullanılır.
+
+1. Menüde "Takvim" → "Randevu".
+2. **Boya kartı** (müşteri kartı sekmesi): tarih, personel, boyalar (marka, numara, gram), oksidan, bekleme dk, not, "beğenildi" işareti.
+3. **Paket:** paket tanımında hizmet başına bonus (8+2 → 10 kullanım). Müşteri kartından paket satışı. Adisyonda paketli hizmet otomatik "paketten" satırı olur (ücretsiz), kalan kullanımdan düşer.
+4. **Gider:** kategori listeden seçilir veya elle eklenir (salon listesine kaydedilir); ödeme nakit/kart/havale + hangi POS/hesap.
+5. **Gün sonu:** nakit/kart/havale kutularında brüt − gider = net; ciro kutusunda toplam gider ve net. POS / hesap bazında döküm.
+6. **POS cihazları ve banka hesapları:** Ayarlar'da elle tanımlanır; kart/havale ödemesinde seçilir.
+7. **Giderler sekmesi:** tarih aralığı + yöntem filtresi.
+8. **Prim:** personel başına mod: (a) kategori: kategori %'si, istenirse hizmete özel %; (b) kademeli: aylık hizmet cirosu dilimleri (from, rate), marjinal. Ürün primi markaya göre % (yoksa varsayılan ürün %). Markalar alfabetik, elle eklenir.
+9. **Personel sayfası:** tarih aralığına göre ciro / işlem / prim.
+10. **Stok:** kategori → marka filtreleri; ürün eklerken marka ve kategori listeden seçilir ya da elle eklenir; alış/satış KDV hariç + KDV oranı (%1/%10/%20), dahil fiyat gösterilir.
+11. Veri şeması v3; v2'den taşıma (mevcut ürün fiyatları KDV dahil kabul edilip %20 ile hariçe çevrilir; mevcut prim oranları kategori modunun varsayılanı olur).
