@@ -15,11 +15,11 @@ export interface NavItem { to: string; label: string; icon: LucideIcon; perm: Pe
 
 export function useNav(): NavItem[] {
   const db = useDbSnapshot()
-  const { tenant, can } = useSession()
+  const { tenant, can, branchId } = useSession()
   return useMemo(() => {
     const tid = tenant?.id
     const today = todayIstanbul()
-    const pending = tid ? db.appointments.filter((a) => a.tenantId === tid && a.status === 'pending' && a.date >= today).length : 0
+    const pending = tid ? db.appointments.filter((a) => a.tenantId === tid && a.branchId === branchId && a.status === 'pending' && a.date >= today).length : 0
     const critical = tid ? db.products.filter((p) => p.tenantId === tid && p.stock <= p.critical).length : 0
     const items: NavItem[] = [
       { to: '/takvim', label: 'Takvim', icon: CalendarDays, perm: 'calendar', badge: pending || undefined, mobile: true },
@@ -36,7 +36,7 @@ export function useNav(): NavItem[] {
       { to: '/platform', label: 'Salonlar', icon: Building2, perm: 'platform', mobile: true },
     ]
     return items.filter((i) => can(i.perm) && !(i.to === '/primlerim' && can('reports')))
-  }, [db, tenant, can])
+  }, [db, tenant, can, branchId])
 }
 
 const THEMES: { value: ThemePref; label: string; icon: LucideIcon }[] = [

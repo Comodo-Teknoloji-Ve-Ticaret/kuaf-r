@@ -11,3 +11,7 @@ export function formatPhone(n: string): string {
   if (d.length !== 10) return n
   return `0${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6, 8)} ${d.slice(8)}`
 }
+
+export function whatsappUrl(phone: string, text: string): string {
+  return `https://wa.me/90${normalizePhone(phone) ?? phone}?text=${encodeURIComponent(text)}`
+}
