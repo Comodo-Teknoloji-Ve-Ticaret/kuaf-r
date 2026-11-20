@@ -20,6 +20,10 @@ export const CASH_ERROR_TEXT: Record<CashError, string> = {
   closed: 'Adisyon zaten kapalı.',
 }
 
+export interface PayerEntry { key: string; customerId: ID | null; name: string; amount: number; count: number; collection: boolean; at: string }
+export interface PayerGroup { people: number; total: number; entries: PayerEntry[] }
+const newGroup = (): PayerGroup => ({ people: 0, total: 0, entries: [] })
+
 export const METHOD_LABEL: Record<PaymentMethod, string> = { cash: 'Nakit', card: 'Kart', transfer: 'Havale/EFT', debt: 'Veresiye' }
 
 export function cashService(repos: Repos, user: User | null, clock: Clock = istanbulClock) {
@@ -154,6 +158,29 @@ export function cashService(repos: Repos, user: User | null, clock: Clock = ista
 
   const expectedCash = (branchId: ID, date: string) => dayCash(branchId, date).expectedCash
 
+  /** Günün ödeme yapanları: yönteme göre kişi sayısı, toplam ve isim listesi (aynı kişi tek satır). */
+  function payers(branchId: ID, date: string): Record<'cash' | 'card' | 'transfer', PayerGroup> {
+    const groups = { cash: newGroup(), card: newGroup(), transfer: newGroup() }
+    const nameOf = (id: ID | null) => (id ? repos.customers.get(id)?.name : undefined) ?? 'Müşterisiz adisyon'
+    const add = (method: 'cash' | 'card' | 'transfer', customerId: ID | null, amount: number, key: string, collection: boolean, at: string) => {
+      const g = groups[method]
+      const k = collection ? `col:${customerId}` : customerId ? `c:${customerId}` : `t:${key}`
+      const e = g.entries.find((x) => x.key === k)
+      if (e) { e.amount += amount; e.count++; if (at > e.at) e.at = at }
+      else g.entries.push({ key: k, customerId, name: nameOf(customerId), amount, count: 1, collection, at })
+      g.total += amount
+    }
+    for (const t of repos.tickets.list({ branchId, date, status: 'closed' })) {
+      for (const p of t.payments) if (p.method !== 'debt') add(p.method, t.customerId, p.amount, t.id, false, t.closedAt ?? t.createdAt)
+    }
+    for (const d of repos.debtCollections.list({ branchId, date })) add(d.method, d.customerId, d.amount, d.id, true, '')
+    for (const g of Object.values(groups)) {
+      g.entries.sort((a, b) => b.amount - a.amount)
+      g.people = new Set(g.entries.map((e) => (e.customerId ? `c:${e.customerId}` : e.key))).size
+    }
+    return groups
+  }
+
   function closeDay(branchId: ID, date: string, countedCash: number, note: string): DayClose {
     const existing = repos.dayCloses.list({ branchId, date })[0]
     return repos.dayCloses.upsert({ ...existing, branchId, date, expectedCash: expectedCash(branchId, date), countedCash, note, closedBy: user?.id ?? '', locked: true })
@@ -168,6 +195,6 @@ export function cashService(repos: Repos, user: User | null, clock: Clock = ista
 
   return {
     openTicket, addLine, updateLine, removeLine, setDiscount, setTip, setCustomer, pay, cancelTicket,
-    collectDebt, addExpense, dayCash, expectedCash, closeDay, reopenDay, isLocked,
+    collectDebt, addExpense, dayCash, expectedCash, payers, closeDay, reopenDay, isLocked,
   }
 }

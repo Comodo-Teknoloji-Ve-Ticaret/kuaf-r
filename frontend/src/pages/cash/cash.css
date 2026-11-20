@@ -84,3 +84,18 @@
   .tl-main { flex-basis: calc(100% - 44px); }
   .tl-price { margin-left: 42px; }
 }
+
+.payers-card { margin-top: 16px; }
+.payers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 14px 18px 18px; }
+.payer-col { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.payer-col header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: color-mix(in srgb, var(--pc) 9%, var(--surface)); border-bottom: 1px solid var(--line); }
+.payer-col header div { flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
+.payer-col header span { font-size: 12px; color: var(--muted); }
+.payer-col header em { font-style: normal; font-weight: 800; font-size: 15px; }
+.payer-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--pc) 16%, transparent); color: var(--pc); }
+.payer-ico svg { width: 17px; height: 17px; }
+.payer-list { padding: 4px 12px 8px; max-height: 340px; overflow-y: auto; }
+.payer-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.payer-row:last-child { border-bottom: none; }
+.payer-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; }
+@media (max-width: 1000px) { .payers-grid { grid-template-columns: 1fr; } }

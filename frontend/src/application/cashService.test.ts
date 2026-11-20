@@ -92,3 +92,31 @@ describe('cashService', () => {
     expect(cashService(r, owner, clock).isLocked('b1', '2026-11-20')).toBe(false)
   })
 })
+
+describe('cashService.payers', () => {
+  it('groups the day’s payers by method with distinct people, names and amounts', () => {
+    const r = setup()
+    r.customers.upsert({ id: 'm2', name: 'Can Yıldız', phone: '5332223344', tags: [], notes: '', consentSms: true, createdAt: '' })
+    const c = cashService(r, reception, clock)
+    const sale = (customerId: string | null, payments: { method: 'cash' | 'card' | 'transfer' | 'debt'; amount: number }[]) => {
+      const t = c.openTicket({ branchId: 'b1', customerId })
+      c.addLine(t.id, { kind: 'service', refId: 'sv1', name: 'Kesim', staffId: 's1', qty: 1, unitPrice: payments.reduce((s, p) => s + p.amount, 0), discount: null })
+      expect(c.pay(t.id, payments).ok).toBe(true)
+    }
+    sale('m1', [{ method: 'card', amount: 40000 }])
+    sale('m1', [{ method: 'card', amount: 10000 }]) // aynı kişi tekrar kartla
+    sale('m2', [{ method: 'cash', amount: 20000 }, { method: 'card', amount: 5000 }]) // parçalı
+    sale(null, [{ method: 'cash', amount: 30000 }])
+    sale(null, [{ method: 'transfer', amount: 15000 }])
+    sale('m2', [{ method: 'debt', amount: 7000 }])
+    c.collectDebt('m2', 7000, 'transfer', 'b1')
+
+    const p = c.payers('b1', '2026-11-20')
+    expect(p.card).toMatchObject({ people: 2, total: 55000 })
+    expect(p.card.entries.map((e) => [e.name, e.amount])).toEqual([['Elif Kaya', 50000], ['Can Yıldız', 5000]])
+    expect(p.cash).toMatchObject({ people: 2, total: 50000 })
+    expect(p.cash.entries.map((e) => e.name)).toEqual(['Müşterisiz adisyon', 'Can Yıldız'])
+    expect(p.transfer).toMatchObject({ people: 2, total: 22000 })
+    expect(p.transfer.entries.find((e) => e.name === 'Can Yıldız')).toMatchObject({ amount: 7000, collection: true })
+  })
+})

@@ -10,7 +10,7 @@ Comodo'nun kuaförlere sattığı çok kiracılı (çok salonlu) salon yönetim 
 |---|---|
 | **Takvim** | Personel sütunlu gün görünümü, hafta görünümü, 15 dk ızgara, sürükle-bırak taşıma, alttan çekerek süre uzatma, çakışma/mesai/izin uyarısı, "şu an" çizgisi, randevusuz müşteri, tekrarlayan randevu, durum akışı (Bekliyor → Onaylandı → Geldi → İşlemde → Tamamlandı / Gelmedi / İptal), kısayollar (`N`, `T`, `←`/`→`) |
 | **Müşteriler** | Ad/telefon ile anlık arama, mükerrer telefon engeli (0532…/+90… aynı sayılır), müşteri kartı: geçmiş, harcama, bakiye, gelmedi sayısı, boya formülü notları, paketler, CSV |
-| **Kasa** | Randevudan tek tıkla adisyon, hizmet/ürün/paket satışı/paketten kullanım, satır ve toplam indirim, bahşiş, nakit/kart/havale/veresiye ve parçalı ödeme, para üstü, veresiye tahsilatı, giderler, gün sonu kapanışı (kilitlenir, sadece sahip açar) |
+| **Kasa** | Randevudan tek tıkla adisyon, hizmet/ürün/paket satışı/paketten kullanım, satır ve toplam indirim, bahşiş, nakit/kart/havale/veresiye ve parçalı ödeme, para üstü, veresiye tahsilatı, giderler, gün sonu kapanışı (kilitlenir, sadece sahip açar), gün sonunda nakit/kart/havale ile kaç kişiden ödeme alındığı ve isim listesi (CSV) |
 | **Hizmetler** | Kategoriler (takvim rengi), satır içi süre/fiyat düzenleme, personele özel fiyat/süre, online görünürlük |
 | **Personel** | Haftalık mesai, izin/mola, yapabildiği hizmetler, hizmet ve ürün prim oranları, aylık prim özeti; personel rolü için "Primlerim" |
 | **Stok** | Satış / salon kullanımı ürünleri, giriş/kullanım/sayım, hareket geçmişi, kritik stok uyarısı, satışta otomatik düşüm |

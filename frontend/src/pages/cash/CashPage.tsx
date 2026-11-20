@@ -1,9 +1,10 @@
-import { ArrowLeft, Banknote, CreditCard, Landmark, Lock, LockOpen, NotebookPen, Plus, Receipt, TrendingDown, Wallet } from 'lucide-react'
+import { ArrowLeft, Banknote, CreditCard, Download, Landmark, Lock, LockOpen, NotebookPen, Plus, Receipt, TrendingDown, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { appointmentService } from '../../application/appointmentService'
 import { cashService, CASH_ERROR_TEXT, METHOD_LABEL } from '../../application/cashService'
 import { customerService } from '../../application/customerService'
+import { toCSV } from '../../application/reportService'
 import { useSession } from '../../app/session'
 import { formatTRY, parseTRY } from '../../domain/money'
 import { formatPhone } from '../../domain/phone'
@@ -151,6 +152,7 @@ function DayCloseTab() {
   const history = repos.dayCloses.list({ branchId: branch?.id ?? '' }).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10)
 
   return (
+    <>
     <div className="day-layout">
       <div className="stack">
         <div className="row" style={{ gap: 8 }}>
@@ -229,6 +231,68 @@ function DayCloseTab() {
             )
           })}
         </div>
+      </div>
+    </div>
+    <PayersCard branchId={branch?.id ?? ''} date={date} />
+    </>
+  )
+}
+
+const PAYER_METHODS = [
+  { m: 'cash' as const, label: 'Nakit', icon: Banknote, tone: 'var(--success)' },
+  { m: 'card' as const, label: 'Kart', icon: CreditCard, tone: 'var(--info)' },
+  { m: 'transfer' as const, label: 'Havale / EFT', icon: Landmark, tone: '#8e6cf0' },
+]
+
+function PayersCard({ branchId, date }: { branchId: string; date: string }) {
+  const repos = useRepos()
+  const { user } = useSession()
+  const p = cashService(repos, user).payers(branchId, date)
+  const totalPeople = new Set(PAYER_METHODS.flatMap(({ m }) => p[m].entries.map((e) => (e.customerId ? e.customerId : e.key)))).size
+  const exportCsv = () => {
+    const rows: (string | number)[][] = [['Ödeme yöntemi', 'Müşteri', 'Tutar (TL)', 'Not']]
+    for (const { m, label } of PAYER_METHODS) for (const e of p[m].entries) rows.push([label, e.name, (e.amount / 100).toFixed(2).replace('.', ','), e.collection ? 'Veresiye tahsilatı' : e.count > 1 ? `${e.count} ödeme` : ''])
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([toCSV(rows)], { type: 'text/csv;charset=utf-8' }))
+    a.download = `odeme-alinanlar-${date}.csv`
+    a.click()
+  }
+  return (
+    <div className="card payers-card">
+      <div className="card-head">
+        <div>
+          <h3>Ödeme alınanlar</h3>
+          <p className="t-small muted">{formatDate(date, { weekday: true })} · toplam {totalPeople} kişi</p>
+        </div>
+        <Button size="sm" variant="ghost" icon={Download} onClick={exportCsv}>CSV</Button>
+      </div>
+      <div className="payers-grid">
+        {PAYER_METHODS.map(({ m, label, icon: Icon, tone }) => {
+          const g = p[m]
+          return (
+            <section key={m} className="payer-col" style={{ ['--pc' as string]: tone }}>
+              <header>
+                <span className="payer-ico"><Icon /></span>
+                <div><b>{label}</b><span>{g.people} kişi</span></div>
+                <em className="num">{formatTRY(g.total)}</em>
+              </header>
+              <div className="payer-list">
+                {g.entries.length === 0 && <p className="muted t-small" style={{ padding: '10px 2px' }}>Bu yöntemle ödeme yok.</p>}
+                {g.entries.map((e) => (
+                  <div key={e.key} className="payer-row">
+                    <Avatar name={e.name} size={26} color={e.customerId ? undefined : 'var(--faint)'} />
+                    <span className="payer-name">
+                      {e.name}
+                      {e.collection && <Badge tone="warning">tahsilat</Badge>}
+                      {e.count > 1 && <span className="muted t-small"> ×{e.count}</span>}
+                    </span>
+                    <b className="num">{formatTRY(e.amount)}</b>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        })}
       </div>
     </div>
   )
