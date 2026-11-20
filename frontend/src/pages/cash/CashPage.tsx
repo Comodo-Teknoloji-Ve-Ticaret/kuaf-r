@@ -43,7 +43,7 @@ export default function CashPage() {
       />
       <div style={{ marginTop: 16 }}>
         {tab === 'tickets' && <TicketsTab />}
-        {tab === 'day' && <DayCloseTab />}
+        {tab === 'day' && <DayCloseTab onShowOpen={(ids) => { setTab('tickets'); setParams(ids.length === 1 ? { adisyon: ids[0] } : {}) }} />}
         {tab === 'expenses' && <ExpensesTab />}
         {tab === 'debts' && <DebtsTab />}
       </div>
@@ -134,7 +134,7 @@ function TicketsTab() {
   )
 }
 
-function DayCloseTab() {
+function DayCloseTab({ onShowOpen }: { onShowOpen: (ticketIds: string[]) => void }) {
   const repos = useRepos()
   const { branch, user } = useSession()
   const toast = useToast()
@@ -148,7 +148,8 @@ function DayCloseTab() {
   const [note, setNote] = useState('')
   const countedK = counted ? parseTRY(counted) : null
   const diff = countedK === null ? null : countedK - d.expectedCash
-  const openTickets = repos.tickets.list({ status: 'open', date }).filter((t) => t.branchId === branch?.id).length
+  const openList = repos.tickets.list({ status: 'open', date }).filter((t) => t.branchId === branch?.id)
+  const openTickets = openList.length
   const history = repos.dayCloses.list({ branchId: branch?.id ?? '' }).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10)
 
   return (
@@ -176,7 +177,7 @@ function DayCloseTab() {
           <div className="sum-row"><span className="muted">Nakit veresiye tahsilatı</span><span>+{formatTRY(d.collected.cash)}</span></div>
           <div className="sum-row"><span className="muted">Nakit gider</span><span>-{formatTRY(d.expenseCash)}</span></div>
           <div className="sum-row total"><span>Kasada olması gereken</span><span>{formatTRY(d.expectedCash)}</span></div>
-          <p className="t-small muted" style={{ marginTop: 8 }}>{d.tickets.length} adisyon kapandı{openTickets > 0 && <> · <span style={{ color: 'var(--warning)' }}>{openTickets} açık adisyon var</span></>}</p>
+          <p className="t-small muted" style={{ marginTop: 8 }}>{d.tickets.length} adisyon kapandı{openTickets > 0 && <> · <button className="open-link" onClick={() => onShowOpen(openList.map((t) => t.id))}>{openTickets} açık adisyon var →</button></>}</p>
         </div>
       </div>
 

@@ -99,3 +99,5 @@
 .payer-row:last-child { border-bottom: none; }
 .payer-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; }
 @media (max-width: 1000px) { .payers-grid { grid-template-columns: 1fr; } }
+.open-link { border: none; background: var(--warning-soft); color: var(--warning); font-weight: 700; font-size: 12px; padding: 2px 9px; border-radius: 999px; cursor: pointer; }
+.open-link:hover { background: color-mix(in srgb, var(--warning) 22%, var(--surface)); }
