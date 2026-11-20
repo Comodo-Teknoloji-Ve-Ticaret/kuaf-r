@@ -108,7 +108,13 @@ const suites = {
       await page.click('.branch-btn'); await clickText('Lara', '.menu button')
     })
     await step('Takvim: alttan çekerek süre uzat', async () => {
-      await go('/takvim'); await page.keyboard.press('ArrowRight'); await sleep(400)
+      await go('/takvim')
+      // yarından itibaren uygun randevusu olan ilk güne git (kapalı günleri atla)
+      for (let i = 0; i < 7; i++) {
+        await page.keyboard.press('ArrowRight'); await sleep(300)
+        const ok = await page.evaluate(() => [...document.querySelectorAll('.ap')].some((e) => e.classList.contains('s-confirmed') && !e.classList.contains('compact')))
+        if (ok) break
+      }
       const r = await page.evaluate(async () => {
         const el = [...document.querySelectorAll('.ap')].find((e) => e.classList.contains('s-confirmed') && !e.classList.contains('compact'))
         const h = el.querySelector('.ap-resize'); const b = h.getBoundingClientRect()
@@ -408,11 +414,12 @@ const suites = {
     await go('/personel')
     await step('Personel: performans tablosu ve tarih filtresi', async () => { await expectText('Kim ne kadar yaptı'); for (const t of ['Bugün', '7 gün', 'Geçen ay', 'Bu ay']) await clickText(t, '.staff-filters .seg button') })
     await step('Personel: prim ayarı kaydet', async () => {
-      await page.click('.perf-card tbody tr'); await sleep(300)
+      const name = await page.evaluate(() => [...document.querySelectorAll('.perf-card tbody tr')].find((r) => r.textContent.includes('Kategori primi')).querySelector('.t-strong').textContent)
+      await page.evaluate(() => [...document.querySelectorAll('.perf-card tbody tr')].find((r) => r.textContent.includes('Kategori primi')).click()); await sleep(300)
       await clickText('Prim', '.drawer .tabs button')
       await setInput('.pct input', '45', 1)
       await clickText('Kaydet', '.drawer-foot button'); await sleep(300)
-      const d = await db(); if (!Object.values(d.staff.find((s) => s.name === 'Mert Kaya').categoryRates).includes(45)) throw new Error('kategori oranı kaydedilmedi')
+      const d = await db(); if (!Object.values(d.staff.find((s) => s.name === name).categoryRates).includes(45)) throw new Error('kategori oranı kaydedilmedi: ' + name)
     })
     await step('Personel: kademeli prim', async () => {
       await page.click('.perf-card tbody tr'); await sleep(300)
@@ -496,7 +503,13 @@ const suites = {
   async messages() {
     await fresh('u_t_lara_rec')
     await go('/mesajlar')
-    await step('Mesajlar: toplu SMS', async () => { await clickText('Tümüne SMS gönder', 'button'); await sleep(300); await expectText('hatırlatma SMS') })
+    await step('Mesajlar: toplu SMS', async () => {
+      const disabled = await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.includes('Tümüne SMS gönder'))?.disabled)
+      if (disabled) { // yarın randevu yok ya da hepsine zaten gönderilmiş
+        const t = await text(); if (!t.includes('Yarın için hatırlatılacak randevu yok') && !t.includes('Hatırlatılacak randevu kalmadı')) throw new Error('boş durum mesajı yok'); return
+      }
+      await clickText('Tümüne SMS gönder', 'button'); await sleep(300); await expectText('hatırlatma SMS')
+    })
     await step('Mesajlar: WhatsApp butonu', async () => { await clickText('Kutla', 'button').catch(() => {}); })
     await step('Mesajlar: şablon düzenle', async () => { await clickText('Şablonlar', '.tabs button'); await setInput('.card-pad textarea', 'Merhaba {musteri} test', 0); await clickText('Kaydet', '.card-pad button'); await expectText('Şablon kaydedildi') })
     await step('Mesajlar: kayıt', async () => { await clickText('Gönderim kaydı', '.tabs button'); if (!(await count('.list-item'))) throw new Error('kayıt yok') })

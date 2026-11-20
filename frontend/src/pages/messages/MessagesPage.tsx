@@ -37,6 +37,7 @@ function TodayTab() {
   const ms = messageService(repos)
   const today = todayIstanbul()
   const due = ms.dueReminders()
+  const tomorrowCount = repos.appointments.list({ date: addDays(today, 1) }).filter((a) => a.customerId && !['cancelled', 'no_show'].includes(a.status)).length
   const bdays = ms.birthdaysToday()
   const sentToday = repos.messages.list().filter((m) => m.at.slice(0, 10) === today).length
   const openWa = (kind: MessageKind, target: { appointmentId?: string; customerId?: string }) => {
@@ -56,7 +57,9 @@ function TodayTab() {
           <Button variant="primary" icon={Smartphone} disabled={!due.length} onClick={() => toast(`${ms.remindAll()} hatırlatma SMS'i gönderildi (simülasyon)`)}>Tümüne SMS gönder</Button>
         </div>
         <div className="list" style={{ marginTop: 8 }}>
-          {due.length === 0 && <EmptyState icon={BellRing} title="Hatırlatılacak randevu kalmadı" text="İleti izni olan tüm müşterilere hatırlatma gönderildi." />}
+          {due.length === 0 && (tomorrowCount === 0
+            ? <EmptyState icon={BellRing} title="Yarın için hatırlatılacak randevu yok" text="Yarın randevu bulunmuyor ya da salon kapalı." />
+            : <EmptyState icon={BellRing} title="Hatırlatılacak randevu kalmadı" text="İleti izni olan tüm müşterilere hatırlatma gönderildi." />)}
           {due.map((a) => {
             const c = repos.customers.get(a.customerId!)!
             return (
