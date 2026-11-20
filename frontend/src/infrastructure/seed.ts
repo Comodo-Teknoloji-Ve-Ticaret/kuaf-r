@@ -267,7 +267,7 @@ export function buildSeed(today: string, nowMin = 690): DB {
     // Ürünler
     const products: Product[] = spec.products.map((p) => ({ ...p, id: id('p_'), tenantId: T }))
     db.products.push(...products)
-    for (const p of products) db.stockMoves.push({ id: id('sm_'), tenantId: T, productId: p.id, date: addDays(today, -45), qty: p.stock + r.int(4, 10), kind: 'in', note: 'Açılış stoku' })
+    for (const p of products) db.stockMoves.push({ id: id('sm_'), tenantId: T, productId: p.id, date: addDays(today, -45), qty: p.stock + r.int(12, 22), kind: 'in', note: 'Açılış stoku' })
     const retail = products.filter((p) => p.kind === 'retail')
 
     // Paketler
@@ -309,7 +309,7 @@ export function buildSeed(today: string, nowMin = 690): DB {
           let status: AppointmentStatus
           if (d < 0) status = r.chance(0.05) ? 'no_show' : r.chance(0.06) ? 'cancelled' : 'completed'
           else if (d === 0) status = t + dur <= nowMin ? 'completed' : t <= nowMin ? 'in_service' : t - nowMin < 30 ? 'arrived' : r.chance(0.15) ? 'pending' : 'confirmed'
-          else status = r.chance(0.18) ? 'pending' : 'confirmed'
+          else status = r.chance(0.06) ? 'pending' : 'confirmed'
           const source = cust === null ? 'walkin' : r.chance(0.22) ? 'online' : r.chance(0.3) ? 'phone' : 'reception'
           const appt: Appointment = {
             id: id('a_'), tenantId: T, branchId: s.branchId, staffId: s.id, customerId: cust?.id ?? null, date, start: t, end: t + dur,
