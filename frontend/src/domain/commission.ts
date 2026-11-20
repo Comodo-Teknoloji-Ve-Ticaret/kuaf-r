@@ -12,6 +12,8 @@ export interface Commission {
 export interface CommissionCtx {
   categoryOf: (serviceId: ID) => ID | undefined
   brandOf: (productId: ID) => string | undefined
+  /** Paketten yapılan bir kullanımın değeri (kuruş); prim bu tutar üzerinden hesaplanır. */
+  packageUseValue?: (customerPackageId: ID, serviceId: ID) => number
 }
 
 /** Marjinal kademe: her dilimin oranı yalnızca o dilime düşen tutara uygulanır. */
@@ -38,15 +40,17 @@ export function commissionFor(staff: Staff, tickets: Ticket[], ctx: CommissionCt
     const net = netLineAmounts(t)
     for (const l of t.lines) {
       if (l.staffId !== staff.id) continue
-      const amount = net.get(l.id) ?? 0
-      if (l.kind === 'service') {
+      const isUse = l.kind === 'package_use' && !!l.serviceId
+      const amount = isUse ? (ctx.packageUseValue?.(l.refId, l.serviceId!) ?? 0) * l.qty : net.get(l.id) ?? 0
+      const serviceId = isUse ? l.serviceId! : l.refId
+      if (l.kind === 'service' || isUse) {
         serviceBase += amount
         if (staff.commissionMode === 'tiered') {
           const m = t.date.slice(0, 7)
           monthly.set(m, (monthly.get(m) ?? 0) + amount)
         } else {
-          const cat = ctx.categoryOf(l.refId)
-          const rate = staff.serviceRates?.[l.refId] ?? (cat ? staff.categoryRates?.[cat] : undefined) ?? staff.serviceCommission
+          const cat = ctx.categoryOf(serviceId)
+          const rate = staff.serviceRates?.[serviceId] ?? (cat ? staff.categoryRates?.[cat] : undefined) ?? staff.serviceCommission
           service += (amount * rate) / 100
         }
       } else if (l.kind === 'product') {

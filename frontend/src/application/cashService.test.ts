@@ -1,3 +1,4 @@
+import { commissionCtx } from './commissionCtx'
 import { describe, expect, it } from 'vitest'
 import type { User } from '../domain/types'
 import { appointmentService } from './appointmentService'
@@ -204,5 +205,20 @@ describe('day summary with expenses and accounts', () => {
     expect(d.accounts.map((a) => [a.name, a.gross, a.expense, a.net])).toEqual([
       ['Garanti POS', 50000, 8000, 42000], ['Ziraat POS', 20000, 0, 20000], ['İş Bankası', 40000, 10000, 30000],
     ])
+  })
+})
+
+describe('package per-use value', () => {
+  it('splits the package price over all uses including bonus, weighted by service price', () => {
+    const r = setup() // sv1 Kesim 400 TL, sv2 Fön 300 TL
+    r.packageDefs.upsert({ id: 'pd1', name: '8+2 Fön', items: [{ serviceId: 'sv2', count: 8, bonus: 2 }], price: 240000, validDays: 120, active: true })
+    r.packageDefs.upsert({ id: 'pd2', name: 'Karma', items: [{ serviceId: 'sv1', count: 1 }, { serviceId: 'sv2', count: 2 }], price: 80000, validDays: 120, active: true })
+    r.customerPackages.upsert({ id: 'cp1', customerId: 'm1', packageDefId: 'pd1', remaining: { sv2: 10 }, soldOn: '2026-11-01', expiresOn: '2027-01-01' })
+    r.customerPackages.upsert({ id: 'cp2', customerId: 'm1', packageDefId: 'pd2', remaining: { sv1: 1, sv2: 2 }, soldOn: '2026-11-01', expiresOn: '2027-01-01' })
+    const v = commissionCtx(r).packageUseValue!
+    expect(v('cp1', 'sv2')).toBe(24000)
+    // liste değeri 400 + 2×300 = 1000 → paket 800: Kesim payı 320, Fön payı 480 / 2 = 240
+    expect(v('cp2', 'sv1')).toBe(32000)
+    expect(v('cp2', 'sv2')).toBe(24000)
   })
 })

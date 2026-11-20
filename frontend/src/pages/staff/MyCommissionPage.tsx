@@ -34,7 +34,9 @@ export default function MyCommissionPage() {
     .filter((t) => t.date.startsWith(month))
     .flatMap((t) => {
       const net = netLineAmounts(t)
-      return t.lines.filter((l) => l.staffId === staff.id && (l.kind === 'service' || l.kind === 'product')).map((l) => ({ t, l, amount: net.get(l.id) ?? 0 }))
+      return t.lines
+        .filter((l) => l.staffId === staff.id && (l.kind === 'service' || l.kind === 'product' || (l.kind === 'package_use' && l.serviceId)))
+        .map((l) => ({ t, l: l.kind === 'package_use' ? { ...l, refId: l.serviceId! } : l, amount: l.kind === 'package_use' ? (ctx.packageUseValue?.(l.refId, l.serviceId!) ?? 0) : net.get(l.id) ?? 0 }))
     })
     .sort((a, b) => b.t.date.localeCompare(a.t.date))
 

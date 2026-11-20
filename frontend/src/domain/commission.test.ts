@@ -45,3 +45,17 @@ describe('tiered commission (marginal, monthly)', () => {
     expect(commissionFor(staff, [a, b], ctx).service).toBe(800_000)
   })
 })
+
+describe('package sessions earn commission', () => {
+  const pctx: CommissionCtx = { ...ctx, packageUseValue: (cpId, sid) => (cpId === 'cp1' && sid === 'fon' ? 24000 : 0) }
+  const use = (id: string, staffId = 's1') => ({ id, kind: 'package_use' as const, refId: 'cp1', serviceId: 'fon', name: 'Fön (paket)', staffId, qty: 1, unitPrice: 0, discount: null })
+  it('pays the category rate on the per-use value of the package', () => {
+    const staff = mkStaff({ serviceCommission: 40, categoryRates: {} })
+    expect(commissionFor(staff, [mkTicket({ lines: [use('a'), use('b')] })], pctx)).toMatchObject({ service: 19200, serviceBase: 48000 })
+  })
+  it('counts package sessions toward the tiered monthly base', () => {
+    const staff = mkStaff({ commissionMode: 'tiered', tiers: [{ from: 0, rate: 0 }, { from: 30000, rate: 50 }] })
+    // 24.000 + 24.000 = 48.000 → aşan 18.000 × %50 = 9.000
+    expect(commissionFor(staff, [mkTicket({ lines: [use('a'), use('b')] })], pctx).service).toBe(9000)
+  })
+})
