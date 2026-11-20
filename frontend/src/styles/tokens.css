@@ -1,0 +1,89 @@
+/* Makas tasarım değişkenleri — Ferah (açık, varsayılan) ve Gece (koyu) */
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f6f6f9;
+  --surface: #ffffff;
+  --surface-2: #f4f4f7;
+  --surface-3: #ececf2;
+  --line: #e8e8ef;
+  --line-strong: #d9d9e3;
+  --text: #1d1d24;
+  --muted: #7d7d8c;
+  --faint: #a9a9b6;
+  --accent: #6c5ce7;
+  --accent-2: #8f83f0;
+  --accent-soft: #efedff;
+  --accent-contrast: #ffffff;
+  --danger: #e5484d;
+  --danger-soft: #fdecec;
+  --success: #12a37b;
+  --success-soft: #e3f7f0;
+  --warning: #e09b17;
+  --warning-soft: #fff5e0;
+  --info: #0984e3;
+  --info-soft: #e3f1fd;
+  --shadow-sm: 0 1px 2px rgba(20, 20, 40, 0.05);
+  --shadow: 0 1px 2px rgba(20, 20, 40, 0.04), 0 8px 24px -8px rgba(30, 30, 70, 0.12);
+  --shadow-lg: 0 24px 60px -16px rgba(30, 30, 70, 0.28);
+  --overlay: rgba(20, 20, 35, 0.32);
+  --grid-hatch: rgba(30, 30, 60, 0.035);
+  --now: #ff4d4f;
+  --sidebar: #ffffff;
+  --card-border-w: 0px;
+
+  /* Kategori renkleri: arka plan / kenar / yazı */
+  --cat-boya-bg: #ffe8dc; --cat-boya-bd: #e17055; --cat-boya-fg: #6a2a17;
+  --cat-kesim-bg: #dcecff; --cat-kesim-bd: #0984e3; --cat-kesim-fg: #0b3a66;
+  --cat-bakim-bg: #d8f5ec; --cat-bakim-bd: #00b894; --cat-bakim-fg: #0b4a3a;
+  --cat-fon-bg: #efe6ff; --cat-fon-bd: #8e6cf0; --cat-fon-fg: #3b2378;
+  --cat-tirnak-bg: #ffe3ef; --cat-tirnak-bd: #e84393; --cat-tirnak-fg: #6d1640;
+  --cat-sakal-bg: #fff1cf; --cat-sakal-bd: #e0a100; --cat-sakal-fg: #5d4200;
+  --cat-diger-bg: #eceff3; --cat-diger-bd: #7d8a99; --cat-diger-fg: #2f3a46;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --font: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #121216;
+  --surface: #17171c;
+  --surface-2: #1d1d23;
+  --surface-3: #25252c;
+  --line: #26262d;
+  --line-strong: #33333b;
+  --text: #ecebe7;
+  --muted: #95938d;
+  --faint: #66655f;
+  --accent: #d4b06a;
+  --accent-2: #e4c88f;
+  --accent-soft: #2a2519;
+  --accent-contrast: #15130e;
+  --danger: #f06368;
+  --danger-soft: #3a1d1f;
+  --success: #4cc79b;
+  --success-soft: #16302a;
+  --warning: #f0b445;
+  --warning-soft: #3a2e14;
+  --info: #6fa8d6;
+  --info-soft: #172a3a;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 24px 60px -12px rgba(0, 0, 0, 0.7);
+  --overlay: rgba(0, 0, 0, 0.55);
+  --grid-hatch: rgba(255, 255, 255, 0.025);
+  --sidebar: #0d0d10;
+  --card-border-w: 3px;
+
+  --cat-boya-bg: #2c2218; --cat-boya-bd: #e39a6f; --cat-boya-fg: #f4d9c4;
+  --cat-kesim-bg: #18232c; --cat-kesim-bd: #6fa8d6; --cat-kesim-fg: #d3e6f5;
+  --cat-bakim-bg: #172a23; --cat-bakim-bd: #5fbf96; --cat-bakim-fg: #cdeee0;
+  --cat-fon-bg: #221d30; --cat-fon-bd: #a48ff0; --cat-fon-fg: #e2dafc;
+  --cat-tirnak-bg: #2d1a24; --cat-tirnak-bd: #e77fae; --cat-tirnak-fg: #f8d5e5;
+  --cat-sakal-bg: #2a2418; --cat-sakal-bd: #d4b06a; --cat-sakal-fg: #f0e3c4;
+  --cat-diger-bg: #202226; --cat-diger-bd: #8b95a1; --cat-diger-fg: #d9dee4;
+}
