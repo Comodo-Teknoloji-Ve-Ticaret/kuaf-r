@@ -18,3 +18,5 @@
 .log-ch { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; flex: none; background: var(--info-soft); color: var(--info); }
 .log-ch.whatsapp { background: var(--success-soft); color: var(--success); }
 .log-ch svg { width: 16px; height: 16px; }
+.wa-progress { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin-bottom: 14px; }
+.wa-progress span { display: block; height: 100%; background: var(--success); transition: width .25s; }

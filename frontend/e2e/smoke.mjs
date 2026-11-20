@@ -510,6 +510,33 @@ const suites = {
       }
       await clickText('Tümüne SMS gönder', 'button'); await sleep(300); await expectText('hatırlatma SMS')
     })
+    await step('Mesajlar: tümüne WhatsApp (tek tek)', async () => {
+      // yarın kapalı olabilir: 3 gelecek randevuyu yarına taşı, izinleri aç
+      await page.evaluate(() => {
+        const d = JSON.parse(localStorage.getItem('makas:v1'))
+        const t = new Date(Date.now() + 864e5).toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' })
+        const ids = new Set(d.messages.filter((m) => m.kind === 'reminder').map((m) => m.appointmentId))
+        const pick = d.appointments.filter((a) => a.tenantId === 't_lara' && a.customerId && a.status === 'confirmed' && !ids.has(a.id)).slice(0, 3)
+        pick.forEach((a, i) => { a.date = t; a.start = 600 + i * 60; a.end = a.start + 30; const c = d.customers.find((x) => x.id === a.customerId); c.consentSms = true })
+        localStorage.setItem('makas:v1', JSON.stringify(d))
+      })
+      await go('/mesajlar')
+      const n = await count('.list .list-item')
+      if (n < 3) throw new Error(`yarın listesi ${n}`)
+      await clickText('Tümüne WhatsApp', 'button'); await expectText('WhatsApp ile tek tek gönder'); await expectText('1 / ')
+      await clickText("WhatsApp'ta aç", '.modal button')
+      const u1 = await page.evaluate(() => window.__opened)
+      if (!/wa\.me\/90\d{10}\?text=/.test(u1 ?? '')) throw new Error('bireysel wa.me açılmadı: ' + u1)
+      await expectText('2 / ')
+      await clickText('Atla', '.modal button')
+      await clickText("WhatsApp'ta aç", '.modal button')
+      const u2 = await page.evaluate(() => window.__opened)
+      if (u2 === u1) throw new Error('aynı kişiye tekrar açıldı')
+      await expectText('gönderildi'); await clickText('Bitti', '.modal button')
+      const d = await db()
+      const wa = d.messages.filter((m) => m.channel === 'whatsapp' && m.kind === 'reminder').length
+      if (wa < 2) throw new Error('WhatsApp kaydı yok')
+    })
     await step('Mesajlar: WhatsApp butonu', async () => { await clickText('Kutla', 'button').catch(() => {}); })
     await step('Mesajlar: şablon düzenle', async () => { await clickText('Şablonlar', '.tabs button'); await setInput('.card-pad textarea', 'Merhaba {musteri} test', 0); await clickText('Kaydet', '.card-pad button'); await expectText('Şablon kaydedildi') })
     await step('Mesajlar: kayıt', async () => { await clickText('Gönderim kaydı', '.tabs button'); if (!(await count('.list-item'))) throw new Error('kayıt yok') })

@@ -1,13 +1,13 @@
-import { BellRing, Cake, Info, MessageCircle, MessageSquareText, Send, Smartphone } from 'lucide-react'
+import { BellRing, Cake, Check, Info, MessageCircle, MessageSquareText, Send, SkipForward, Smartphone } from 'lucide-react'
 import { useState } from 'react'
 import { messageService } from '../../application/messageService'
 import { formatPhone } from '../../domain/phone'
 import { renderTemplate, TEMPLATE_VARS } from '../../domain/template'
 import { addDays, formatDate, todayIstanbul, toHHMM } from '../../domain/time'
-import type { MessageKind, MessageTemplate } from '../../domain/types'
+import type { Appointment, MessageKind, MessageTemplate } from '../../domain/types'
 import { useSession } from '../../app/session'
 import { useRepos } from '../../infrastructure'
-import { Avatar, Badge, Button, EmptyState, Field, Kpi, PageHeader, Switch, Tabs, Textarea, useToast } from '../../ui'
+import { Avatar, Badge, Button, EmptyState, Field, Kpi, Modal, PageHeader, Switch, Tabs, Textarea, useToast } from '../../ui'
 import './messages.css'
 
 const KIND_LABEL: Record<MessageKind, string> = { confirm: 'Onay', reminder: 'Hatırlatma', cancel: 'İptal', birthday: 'Doğum günü', winback: 'Geri kazanım' }
@@ -40,6 +40,7 @@ function TodayTab() {
   const tomorrowCount = repos.appointments.list({ date: addDays(today, 1) }).filter((a) => a.customerId && !['cancelled', 'no_show'].includes(a.status)).length
   const bdays = ms.birthdaysToday()
   const sentToday = repos.messages.list().filter((m) => m.at.slice(0, 10) === today).length
+  const [waQueue, setWaQueue] = useState<Appointment[] | null>(null)
   const openWa = (kind: MessageKind, target: { appointmentId?: string; customerId?: string }) => {
     const r = ms.send(kind, target, 'whatsapp')
     if (r.url) window.open(r.url, '_blank', 'noopener')
@@ -54,7 +55,10 @@ function TodayTab() {
       <div className="card">
         <div className="card-head">
           <h3>Yarınki randevular · {formatDate(addDays(today, 1), { weekday: true })}</h3>
-          <Button variant="primary" icon={Smartphone} disabled={!due.length} onClick={() => toast(`${ms.remindAll()} hatırlatma SMS'i gönderildi (simülasyon)`)}>Tümüne SMS gönder</Button>
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <Button icon={MessageCircle} disabled={!due.length} onClick={() => setWaQueue(due)}>Tümüne WhatsApp</Button>
+            <Button variant="primary" icon={Smartphone} disabled={!due.length} onClick={() => toast(`${ms.remindAll()} hatırlatma SMS'i gönderildi (simülasyon)`)}>Tümüne SMS gönder</Button>
+          </div>
         </div>
         <div className="list" style={{ marginTop: 8 }}>
           {due.length === 0 && (tomorrowCount === 0
@@ -76,6 +80,7 @@ function TodayTab() {
           })}
         </div>
       </div>
+      {waQueue && <WhatsAppQueue queue={waQueue} onClose={(n) => { setWaQueue(null); if (n) toast(`${n} müşteriye WhatsApp hatırlatması açıldı`) }} />}
       <div className="card">
         <div className="card-head"><h3>Bugün doğum günü olanlar 🎉</h3></div>
         <div className="list" style={{ marginTop: 8 }}>
@@ -90,6 +95,45 @@ function TodayTab() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** Tarayıcılar tek tıkla birden çok pencere açmayı engeller; bu yüzden her müşteri için ayrı (bireysel) sohbet sırayla açılır. */
+function WhatsAppQueue({ queue, onClose }: { queue: Appointment[]; onClose: (sent: number) => void }) {
+  const repos = useRepos()
+  const ms = messageService(repos)
+  const [i, setI] = useState(0)
+  const [sent, setSent] = useState(0)
+  const a = queue[i]
+  const done = i >= queue.length
+  const p = a ? ms.preview('reminder', { appointmentId: a.id }) : null
+  const next = () => setI((x) => x + 1)
+  const send = () => {
+    const r = ms.send('reminder', { appointmentId: a.id }, 'whatsapp')
+    if (r.url) window.open(r.url, '_blank', 'noopener')
+    setSent((n) => n + 1)
+    next()
+  }
+  return (
+    <Modal title="WhatsApp ile tek tek gönder" onClose={() => onClose(sent)} footer={done
+      ? <Button variant="primary" icon={Check} onClick={() => onClose(sent)}>Bitti</Button>
+      : <><Button variant="ghost" onClick={() => onClose(sent)}>Durdur</Button><Button icon={SkipForward} onClick={next}>Atla</Button><Button variant="primary" icon={MessageCircle} onClick={send}>WhatsApp'ta aç</Button></>}>
+      <div className="wa-progress"><span style={{ width: `${(Math.min(i, queue.length) / queue.length) * 100}%` }} /></div>
+      {done ? (
+        <EmptyState icon={Check} title={`${sent} / ${queue.length} müşteriye gönderildi`} text="Her mesaj müşteriyle ayrı sohbette açıldı; grup oluşturulmadı." />
+      ) : p && (
+        <div className="stack" style={{ gap: 12 }}>
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <div className="row">
+              <Avatar name={p.customer.name} size={38} />
+              <div><div className="t-strong">{p.customer.name}</div><div className="t-small muted">{formatPhone(p.customer.phone)} · {toHHMM(a.start)}</div></div>
+            </div>
+            <Badge tone="info">{i + 1} / {queue.length}</Badge>
+          </div>
+          <div className="phone-preview"><div className="bubble">{p.body}</div><span>Mesaj WhatsApp'ta hazır açılır; göndermek için WhatsApp'ta gönder tuşuna basın.</span></div>
+        </div>
+      )}
+    </Modal>
   )
 }
 
