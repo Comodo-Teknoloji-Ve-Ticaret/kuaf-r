@@ -49,6 +49,7 @@ cd frontend
 npm install
 npm run dev      # geliştirme
 npm test         # Vitest birim testleri
+npm run e2e      # Uçtan uca duman testi (çalışan dev sunucusu + yerel Chrome gerekir; BASE ve CHROME ile ayarlanır)
 npm run build    # üretim derlemesi (frontend/dist)
 ```
 

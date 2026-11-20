@@ -131,16 +131,9 @@
 .cust-pick { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); }
 .cust-pick div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .cust-pick span { font-size: 12px; color: var(--muted); }
-.svc-group { display: flex; flex-direction: column; gap: 8px; }
-.svc-group h5 { margin: 0; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); display: flex; align-items: center; gap: 6px; }
-.svc-group h5 i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
-.svc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .svc-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 0; height: auto; padding: 7px 12px; border-radius: 12px; text-align: left; }
 .svc-chip small { font-size: 11px; color: var(--muted); font-weight: 500; }
 .svc-chip.on small { color: inherit; opacity: 0.8; }
-.summary-box { border-radius: 14px; background: var(--surface-2); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
-.conflict-box { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--warning-soft); color: var(--warning); font-size: 13px; font-weight: 500; }
-.conflict-box svg { width: 17px; height: 17px; flex: none; margin-top: 1px; }
 .detail-hero { display: flex; gap: 12px; align-items: center; }
 .detail-hero div { flex: 1; min-width: 0; }
 .detail-hero h3 { font-size: 17px; }
@@ -156,7 +149,4 @@
 .svc-lines { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; }
 .svc-lines > div { display: flex; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--line); gap: 8px; }
 .svc-lines > div:last-child { border-bottom: none; }
-.note-box { background: var(--warning-soft); color: color-mix(in srgb, var(--warning) 70%, var(--text)); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
 .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.history-mini { display: flex; flex-direction: column; gap: 6px; }
-.history-mini > div { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }

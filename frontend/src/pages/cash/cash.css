@@ -49,37 +49,21 @@
 .pay-total { display: flex; flex-direction: column; align-items: center; padding: 14px; border-radius: 16px; background: linear-gradient(135deg, var(--accent-soft), transparent); }
 .pay-total span { font-size: 12px; color: var(--muted); }
 .pay-total b { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; }
-.pay-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.pay-q { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--surface); font-weight: 600; font-size: 12.5px; transition: all 0.12s; }
-.pay-q svg { width: 20px; height: 20px; color: var(--muted); }
-.pay-q.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-.pay-q.on svg { color: var(--accent); }
-.pay-q:disabled { opacity: 0.4; }
 .pay-rows { display: flex; flex-direction: column; gap: 8px; }
 .pay-row { display: flex; gap: 8px; align-items: center; }
 .pay-row .select { width: 140px; }
-.pay-amount { flex: 1; display: flex; align-items: center; gap: 4px; height: 40px; border: 1px solid var(--line-strong); border-radius: 10px; padding: 0 12px; background: var(--surface); }
-.pay-amount:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.pay-amount span { color: var(--muted); }
-.pay-amount input { flex: 1; border: none; outline: none; background: transparent; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 0; }
-.pay-status { text-align: center; padding: 9px; border-radius: 12px; font-weight: 700; font-size: 13.5px; }
-.pay-status.ok { background: var(--success-soft); color: var(--success); }
-.pay-status.left { background: var(--warning-soft); color: var(--warning); }
-.pay-status.over { background: var(--danger-soft); color: var(--danger); }
 .change-box { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
 .change-box label { font-size: 12px; font-weight: 600; color: var(--muted); }
 .change-box b { color: var(--success); font-size: 16px; }
 
 .day-layout { display: grid; grid-template-columns: 1fr 360px; gap: 16px; align-items: start; }
 .link-btn { border: none; background: none; color: var(--accent); padding: 0; font-weight: 600; }
-.history-mini { display: flex; flex-direction: column; gap: 6px; }
 
 @media (max-width: 1000px) {
   .cash-layout, .day-layout { grid-template-columns: 1fr; }
   .cash-layout > aside { position: static; max-height: none; }
 }
 @media (max-width: 560px) {
-  .pay-quick { grid-template-columns: repeat(2, 1fr); }
   .tl { flex-wrap: wrap; }
   .tl-main { flex-basis: calc(100% - 44px); }
   .tl-price { margin-left: 42px; }
@@ -105,9 +89,6 @@
 .pkg-pill { display: flex; align-items: center; gap: 6px; background: var(--info-soft); color: var(--info); border-radius: 999px; padding: 3px 4px 3px 10px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .pkg-pill button { border: none; background: var(--surface); color: var(--muted); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
 .pkg-pill button:hover { color: var(--text); }
-.pay-quick { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)) !important; }
-.pay-q small { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: -4px; text-align: center; }
-.pay-q.on small { color: inherit; }
 .pay-row .select { width: auto; min-width: 120px; }
 
 .dc-grid { display: grid; grid-template-columns: 1.15fr repeat(4, 1fr); gap: 10px; }
