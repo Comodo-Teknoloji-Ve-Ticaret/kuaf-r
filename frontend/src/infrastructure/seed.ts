@@ -183,7 +183,7 @@ const SALONS: SalonSpec[] = [
   },
 ]
 
-const TEMPLATES: Omit<MessageTemplate, 'id' | 'tenantId'>[] = [
+export const TEMPLATES: Omit<MessageTemplate, 'id' | 'tenantId'>[] = [
   { kind: 'confirm', name: 'Randevu onayı', enabled: true, body: 'Merhaba {musteri}, {tarih} {saat} için {salon} randevunuz oluşturuldu ({hizmet} – {personel}). Görüşmek üzere!' },
   { kind: 'reminder', name: 'Randevu hatırlatma', enabled: true, hoursBefore: 24, body: 'Hatırlatma: {musteri}, yarın {saat}\'te {salon} randevunuz var. Değişiklik için bu mesajı yanıtlayabilirsiniz.' },
   { kind: 'cancel', name: 'İptal bildirimi', enabled: true, body: 'Merhaba {musteri}, {tarih} {saat} randevunuz iptal edilmiştir. Yeni randevu için bize ulaşın.' },
